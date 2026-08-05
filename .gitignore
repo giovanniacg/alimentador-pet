@@ -1,0 +1,26 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+firmware/.vscode/
+
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+*.apk
+*.aab
+
+# Segredos - NUNCA commitar
+.env
+.env.*
+!.env.example
+infra/mosquitto/config/passwd
+secrets/
+*.pem
+*.key
+
+# Sistema
+.DS_Store
+Thumbs.db

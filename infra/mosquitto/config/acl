@@ -1,0 +1,15 @@
+# Permissao por topico. Deny by default: o que nao esta aqui, nao passa.
+
+# O alimentador cuida apenas do proprio ramo.
+user feeder-sp01
+topic write feeder/sp01/status
+topic write feeder/sp01/event/#
+topic read  feeder/sp01/cmd/#
+topic read  feeder/sp01/schedule
+
+# O app comanda e observa.
+user app-giovanni
+topic read  feeder/+/status
+topic read  feeder/+/event/#
+topic write feeder/+/cmd/#
+topic readwrite feeder/+/schedule
