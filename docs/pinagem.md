@@ -99,6 +99,23 @@ desconectado, testando os fios dois a dois. **Fios do mesmo par acusam 2 a 3 Ω;
 diferentes, nada.** Qual par você chama de 1 e qual de 2 é indiferente — no máximo o motor
 gira ao contrário, e aí basta inverter o `DIR` no firmware.
 
+#### Motor deste projeto (medido em 05/08/2026)
+
+| Fio do motor | Vai em |
+|---|---|
+| verde | `1A` |
+| preto | `1B` |
+| azul | `2A` |
+| vermelho | `2B` |
+
+Pares confirmados no multímetro: verde com preto, azul com vermelho. Bate com o padrão de
+fábrica do NEMA 17. Dentro de um par a ordem é indiferente — inverter só troca o sentido de
+rotação, corrigível no `DIR`. Atravessar os pares trava o motor vibrando.
+
+> Esses quatro fios saem do próprio motor e não passam por jumper. As cores são de fábrica,
+> não escolha de montagem. O verde usado para o motor no mapa da protoboard é código de
+> subsistema, não instrução de qual jumper pegar.
+
 Com 1/8 de micropasso, uma volta completa do NEMA 17 são **1600 pulsos** (200 passos × 8).
 
 ## Ajuste de corrente (VREF)
