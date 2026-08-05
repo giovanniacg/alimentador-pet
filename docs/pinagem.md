@@ -11,8 +11,8 @@ Ligações completas entre o ESP32-WROOM-32 e os módulos, com a justificativa d
 | GPIO 25 | DRV8825 | ENABLE | saída | Ativo em nível BAIXO. Manter ALTO em repouso |
 | GPIO 16 | HX711 | DT / DOUT | entrada | Dados da balança |
 | GPIO 4 | HX711 | SCK | saída | Clock da balança |
-| GPIO 21 | DS3231 + OLED | SDA | I²C | Barramento compartilhado |
-| GPIO 22 | DS3231 + OLED | SCL | I²C | Barramento compartilhado |
+| GPIO 21 | DS3231 | SDA | I²C | Barramento, aceita mais módulos |
+| GPIO 22 | DS3231 | SCL | I²C | Barramento, aceita mais módulos |
 | GPIO 17 | BC337 | base | saída | **Sempre** com resistor de 1 kΩ em série |
 | GPIO 33 | Botão frente | — | entrada | Alimentar / config WiFi. `INPUT_PULLUP` |
 | GPIO 32 | Botão traseiro | — | entrada | Tara da balança. `INPUT_PULLUP` |
@@ -140,11 +140,15 @@ caixa for metálica, garanta que o corpo não encoste em nada energizado.
 - IP66: protegido contra poeira e jato d'água, adequado à área do comedouro.
 - Temperatura de operação: -22 a +55 °C.
 
-## Display OLED
+## Display OLED — ADIADO
+
+> **Estudado em 05/08/2026 e adiado.** Não há função definida para a tela ainda, e o
+> comportamento dela precisa ser decidido antes da compra por causa do burn-in descrito
+> abaixo. As notas ficam aqui prontas para quando o assunto voltar.
 
 Módulo SSD1306 de 0,96 polegada, 128 × 64, com interface I²C.
 
-**Não exige nenhuma peça adicional.** O I²C é um barramento: o display entra em paralelo
+**Não exigiria nenhuma peça adicional.** O I²C é um barramento: o display entra em paralelo
 com o DS3231 nos mesmos GPIO 21 e 22. Cada dispositivo tem endereço próprio e eles não
 colidem.
 

@@ -73,8 +73,18 @@ já existente, e do lado da instalação não há nada a configurar: liga e cone
 | BC337 (NPN) | Chaveia o buzzer de 12 V pelo GPIO de 3,3 V. **Não use IRFZ44N** — não é logic level, não satura com 3,3 V |
 | 1N4007 | Diodo de proteção contra pico indutivo |
 | RTC DS3231 | Relógio com bateria. Sem ele, após queda de energia sem internet a placa não sabe a hora e não alimenta |
-| Display OLED 0,96" SSD1306 | Estado do aparelho sem celular. Entra no I²C que já existe, sem peça extra. Prefira o monocromático ao bicolor |
 | 2x Botão inox 12 mm IP66 | Dose manual sem app/rede e tara da balança. IP66 aguenta respingo na área do comedouro |
+
+### Estudado e adiado
+
+**Display OLED 0,96" SSD1306.** Entraria no I²C que já existe, sem peça adicional nem GPIO
+novo. Adiado por não haver função definida para a tela: OLED sofre burn-in, então o
+comportamento dela (quando acende, quando dorme, o que mostra) precisa ser decidido antes
+da compra, não depois. Notas técnicas guardadas em [`docs/pinagem.md`](docs/pinagem.md).
+
+**Câmera.** Um ESP32-CAM apontado para o comedouro transformaria "alimentei" em "vi ele
+comendo". É um segundo aparelho e um projeto próprio, não um módulo a mais. Só faz sentido
+depois que este aqui rodar sete dias em pé.
 
 ### Em aberto
 
@@ -95,8 +105,8 @@ Detalhe completo e justificativa de cada escolha em [`docs/pinagem.md`](docs/pin
 | GPIO 25 | DRV8825 · ENABLE | Ativo em nível baixo |
 | GPIO 16 | HX711 · DT | Dados da balança |
 | GPIO 4 | HX711 · SCK | Clock da balança |
-| GPIO 21 | DS3231 + OLED · SDA | I²C compartilhado |
-| GPIO 22 | DS3231 + OLED · SCL | I²C compartilhado |
+| GPIO 21 | DS3231 · SDA | I²C |
+| GPIO 22 | DS3231 · SCL | I²C |
 | GPIO 17 | Base do BC337 | Sempre com resistor de 1 kΩ |
 | GPIO 33 | Botão frente | Alimentar / config WiFi. Pull-up interno |
 | GPIO 32 | Botão traseiro | Tara da balança. Pull-up interno |
