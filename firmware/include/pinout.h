@@ -11,9 +11,18 @@
 #define PIN_HX711_DT    16
 #define PIN_HX711_SCK    4
 
-// --- DS3231 (RTC com bateria) ---
+// --- Barramento I2C (compartilhado) ---
+// RTC e display convivem nos mesmos dois fios, com enderecos distintos.
 #define PIN_I2C_SDA     21
 #define PIN_I2C_SCL     22
+#define ADDR_DS3231   0x68   // RTC
+#define ADDR_OLED     0x3C   // display SSD1306 (algumas placas usam 0x3D)
+
+// --- Display OLED 0.96" SSD1306 ---
+// OLED sofre burn-in: nunca deixar conteudo estatico aceso 24/7.
+#define OLED_LARGURA   128
+#define OLED_ALTURA     64
+#define OLED_SLEEP_MS 30000  // apaga sozinho apos 30s sem interacao
 
 // --- Buzzer 12V via BC337 ---
 #define PIN_BUZZER      17   // sempre com 1k em serie na base

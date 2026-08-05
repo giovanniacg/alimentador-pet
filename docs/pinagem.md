@@ -11,8 +11,8 @@ Ligações completas entre o ESP32-WROOM-32 e os módulos, com a justificativa d
 | GPIO 25 | DRV8825 | ENABLE | saída | Ativo em nível BAIXO. Manter ALTO em repouso |
 | GPIO 16 | HX711 | DT / DOUT | entrada | Dados da balança |
 | GPIO 4 | HX711 | SCK | saída | Clock da balança |
-| GPIO 21 | DS3231 | SDA | I²C | Barramento padrão do ESP32 |
-| GPIO 22 | DS3231 | SCL | I²C | Barramento padrão do ESP32 |
+| GPIO 21 | DS3231 + OLED | SDA | I²C | Barramento compartilhado |
+| GPIO 22 | DS3231 + OLED | SCL | I²C | Barramento compartilhado |
 | GPIO 17 | BC337 | base | saída | **Sempre** com resistor de 1 kΩ em série |
 | GPIO 33 | Botão frente | — | entrada | Alimentar / config WiFi. `INPUT_PULLUP` |
 | GPIO 32 | Botão traseiro | — | entrada | Tara da balança. `INPUT_PULLUP` |
@@ -139,3 +139,63 @@ caixa for metálica, garanta que o corpo não encoste em nada energizado.
 
 - IP66: protegido contra poeira e jato d'água, adequado à área do comedouro.
 - Temperatura de operação: -22 a +55 °C.
+
+## Display OLED
+
+Módulo SSD1306 de 0,96 polegada, 128 × 64, com interface I²C.
+
+**Não exige nenhuma peça adicional.** O I²C é um barramento: o display entra em paralelo
+com o DS3231 nos mesmos GPIO 21 e 22. Cada dispositivo tem endereço próprio e eles não
+colidem.
+
+| Display | Vai para |
+|---|---|
+| GND | GND comum |
+| VDD | 3V3, mesmo trilho do DS3231 |
+| SCK | GPIO 22, junto com o SCL do RTC |
+| SDA | GPIO 21, junto com o SDA do RTC |
+
+| Dispositivo | Endereço |
+|---|---|
+| SSD1306 | `0x3C` (algumas placas vêm em `0x3D`) |
+| DS3231 | `0x68` |
+
+Se o display não aparecer, rode um scanner de I²C antes de suspeitar de qualquer outra
+coisa: ele lista os endereços presentes no barramento e resolve a dúvida em segundos.
+
+### Pull-ups
+
+Cada módulo traz os seus, de 4,7 kΩ. Dois em paralelo resultam em 2,35 kΩ, dentro da faixa
+saudável. Só passaria a incomodar com quatro ou cinco módulos no mesmo barramento — aí
+seria preciso remover os resistores de alguns deles.
+
+### Burn-in — regra de projeto
+
+OLED é tecnologia orgânica e **degrada onde fica aceso**. Conteúdo estático 24 horas por
+dia deixa fantasma permanente em questão de meses.
+
+Portanto o display não é um painel sempre ligado, e sim algo que **acorda**:
+
+- apagado por padrão;
+- acende ao toque de qualquer botão, ou durante uma dose;
+- dorme sozinho após 30 s (`OLED_SLEEP_MS`).
+
+Efeito colateral bom: "ver o estado" vira um gesto explícito, o que é mais claro para quem
+opera o aparelho do que um painel que está sempre lá.
+
+### Versão bicolor
+
+O modelo amarelo-e-azul tem as 16 primeiras linhas de pixels fisicamente amarelas e as 48
+restantes azuis. Isso é o material do painel, não configuração de software: qualquer
+elemento que cruze a linha 16 sai partido em duas cores.
+
+Para liberdade de layout, prefira a versão monocromática. Se usar a bicolor, projete a
+interface tratando a linha 16 como divisor fixo — cabeçalho em cima, dados embaixo.
+
+### O que mostrar
+
+- Peso atual no prato
+- Próxima refeição e porção
+- Estado da conexão
+- Durante a dose: progresso em gramas
+- Em falha: a causa em texto legível, não um código de erro
