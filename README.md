@@ -98,6 +98,11 @@ volta, então qualquer geometria funciona.
 
 Detalhe completo e justificativa de cada escolha em [`docs/pinagem.md`](docs/pinagem.md).
 
+**Mapa interativo da protoboard:** [`hardware/montagem-protoboard.html`](hardware/montagem-protoboard.html)
+— abra no navegador. Filtra a fiação por etapa de montagem (energia, motor, balança, relógio,
+buzzer, botões) e por modo de alimentação (bancada com USB ou montagem final só com a fonte).
+Etapas já feitas ficam esmaecidas, a atual em destaque, as futuras ocultas.
+
 | ESP32 | Vai para | Observação |
 |---|---|---|
 | GPIO 26 | DRV8825 · STEP | Cada pulso, um micropasso |

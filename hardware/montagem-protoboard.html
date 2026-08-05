@@ -1,0 +1,369 @@
+<title>Alimentador Pet: mapa da protoboard</title>
+<style>
+  :root {
+    --bg: #141a21; --panel: #1c242d; --panel2: #222c37; --line: #2e3a47;
+    --text: #e8edf2; --muted: #93a1b0; --accent: #ffb454;
+    --chip-bg: #26313d; --chip-on: #ffb454; --chip-on-text: #1a1105;
+    --warn-bg: #3a2a12; --warn-text: #ffd28a;
+    --wire-gnd: #f0f2f4; --esp-bg: #2a3542; --esp-edge: #465565;
+    --mod-bg: #243040; --mod-edge: #3d4d5f; --pin-dot: #d7dee6;
+    --table-alt: #1a222b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f2efe8; --panel: #ffffff; --panel2: #f7f4ec; --line: #ddd6c6;
+    --text: #22262b; --muted: #6b7480; --accent: #c47a17;
+    --chip-bg: #e9e4d6; --chip-on: #c47a17; --chip-on-text: #fff;
+    --warn-bg: #fbe9c8; --warn-text: #7a5410;
+    --wire-gnd: #b9bfc6; --esp-bg: #303b48; --esp-edge: #23292f;
+    --mod-bg: #3a4656; --mod-edge: #2c3542; --pin-dot: #e8edf2;
+    --table-alt: #f4f1e9;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f2efe8; --panel: #ffffff; --panel2: #f7f4ec; --line: #ddd6c6;
+      --text: #22262b; --muted: #6b7480; --accent: #c47a17;
+      --chip-bg: #e9e4d6; --chip-on: #c47a17; --chip-on-text: #fff;
+      --warn-bg: #fbe9c8; --warn-text: #7a5410;
+      --wire-gnd: #b9bfc6; --esp-bg: #303b48; --esp-edge: #23292f;
+      --mod-bg: #3a4656; --mod-edge: #2c3542; --pin-dot: #e8edf2;
+      --table-alt: #f4f1e9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1340px; margin: 0 auto; padding: 20px 22px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; margin-bottom: 6px; }
+  h1 { font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; }
+  .rule { background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin: 10px 0 8px; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+  .chip {
+    background: var(--chip-bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 14px; font-size: 13.5px; cursor: pointer; font-weight: 600;
+  }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chip.on { background: var(--chip-on); color: var(--chip-on-text); border-color: var(--chip-on); }
+  .stage-note { color: var(--muted); font-size: 14px; margin: 0 0 12px; max-width: 82ch; }
+  .stage-note b { color: var(--text); }
+  .stage-detail { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0 0 14px; max-width: 760px; overflow-x: auto; }
+  .stage-detail:empty { display: none; }
+  .stage-detail .cap { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .stage-detail svg { min-width: 560px; }
+  .board-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px; overflow-x: auto; }
+  svg { display: block; min-width: 980px; width: 100%; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 6px 4px; font-size: 13px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 18px; height: 4px; border-radius: 2px; display: inline-block; }
+  h2 { font-size: 16px; margin: 26px 0 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  tr:nth-child(even) td { background: var(--table-alt); }
+  td.mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: 1px; }
+  .foot { color: var(--muted); font-size: 12.5px; margin-top: 22px; max-width: 92ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Alimentador Pet: mapa da protoboard</h1>
+    <span class="sub">rev. B | espelho de <span class="mono">docs/pinagem.md</span> e <span class="mono">firmware/include/pinout.h</span></span>
+  </header>
+  <div class="rule">Regra dura de bancada: NUNCA conectar ou desconectar o motor com o DRV8825 energizado. Isso destrói o driver na hora. Desligue a fonte sempre.</div>
+  <div class="rule">Antes de encostar o LM2596 em qualquer coisa: ligue a fonte, meça a saída e ajuste para 5,0 V. Ele sai de fábrica em tensão arbitrária.</div>
+
+  <div class="chips" id="chipsModo" role="tablist" aria-label="Modo de alimentacao"></div>
+  <div class="chips" id="chips" role="tablist" aria-label="Etapas de montagem"></div>
+  <p class="stage-note" id="stageNote"></p>
+  <div class="stage-detail" id="stageDetail"></div>
+
+  <div class="board-panel">
+    <svg id="svg" viewBox="0 0 1300 900" role="img" aria-label="Diagrama de fiacao da protoboard do alimentador"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <h2 id="tableTitle"></h2>
+  <table>
+    <thead><tr><th>Fio</th><th>De</th><th>Para</th><th>Observacao</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <p class="foot">Etapas anteriores ficam esmaecidas no diagrama; a etapa selecionada aparece em destaque; etapas futuras ficam ocultas. Cada etapa fecha com um teste que passa ou nao passa - o mesmo teste descrito em <span class="mono">docs/fases.md</span>. Fonte unica da pinagem no firmware: <span class="mono">firmware/include/pinout.h</span>.</p>
+</div>
+
+<script>
+// ---------- cores por subsistema ----------
+const COR = {
+  v12:  { c: '#e5484d', nome: 'trilho 12V (vermelho)' },
+  v5:   { c: '#f5a524', nome: 'trilho 5V (laranja)' },
+  v33:  { c: '#e8d44d', nome: 'trilho 3V3 (amarelo)' },
+  gnd:  { c: 'var(--wire-gnd)', nome: 'GND (branco na proto)' },
+  mot:  { c: '#34c98e', nome: 'sinais do driver (verde)' },
+  bal:  { c: '#2f6fd6', nome: 'HX711 / balanca (azul)' },
+  i2c:  { c: '#2ec8c8', nome: 'I2C do relogio (azul claro)' },
+  buz:  { c: '#ff7ab2', nome: 'buzzer (rosa)' },
+  bot:  { c: '#a78bfa', nome: 'botoes (roxo)' },
+};
+
+// ---------- ESP32 DevKit 30p (USB pra BAIXO / antena pra cima) ----------
+// Confira SEMPRE a serigrafia da placa fisica antes de fiar.
+const ESP = { x: 560, y: 190, w: 170, h: 430 };
+const espL = ['EN','VP (36)','VN (39)','D34','D35','D32','D33','D25','D26','D27','D14','D12','D13','GND','VIN'];
+const espR = ['D23','D22','TX0','RX0','D21','D19','D18','D5','TX2 (17)','RX2 (16)','D4','D2','D15','GND','3V3'];
+const espPin = {};
+espL.forEach((n, i) => {
+  let k = n.split(' ')[0]; if (espPin[k]) k += 'R';
+  espPin[k] = { x: ESP.x, y: ESP.y + 34 + i * 26.5, side: 'L', label: n };
+});
+espR.forEach((n, i) => {
+  let k = n.split(' ')[0]; if (espPin[k]) k += 'R';
+  espPin[k] = { x: ESP.x + ESP.w, y: ESP.y + 34 + i * 26.5, side: 'R', label: n };
+});
+
+// ---------- trilhos ----------
+const RAIL = {
+  'RAIL 12V': { y: 54,  cor: COR.v12.c, label: 'trilho 12V (direto da fonte: driver, buzzer e entrada do LM2596)' },
+  'RAIL 5V':  { y: 98,  cor: COR.v5.c,  label: 'trilho 5V (saida do LM2596, ja ajustada e medida)' },
+  'RAIL 3V3': { y: 142, cor: COR.v33.c, label: 'trilho 3V3 (pino 3V3 do ESP32: HX711 e DS3231)' },
+  'RAIL GND': { y: 856, cor: 'var(--wire-gnd)', label: 'trilho GND (comum a tudo, sem excecao)' },
+};
+
+// ---------- modulos ----------
+const MODS = {
+  'FONTE 12V':  { x: 40,  y: 178, w: 118, side: 'R', pins: ['+12V','GND'] },
+  'LM2596':     { x: 40,  y: 290, w: 118, side: 'R', pins: ['IN+','IN-','OUT+','OUT-'] },
+  'NEMA 17':    { x: 40,  y: 452, w: 118, side: 'R', pins: ['A1','A2','B1','B2'] },
+  'BUZZER 12V': { x: 40,  y: 614, w: 118, side: 'R', pins: ['+','-'] },
+  'BC337':      { x: 40,  y: 724, w: 118, side: 'R', pins: ['B','C','E'] },
+  'DRV8825':    { x: 350, y: 196, w: 150, side: 'R',
+                  pins: ['STEP','DIR','ENABLE','SLEEP','RESET','VMOT','VDD','GND'],
+                  pinsL: ['A1','A2','B1','B2'] },
+  'CAP 470uF':  { x: 350, y: 470, w: 118, side: 'R', pins: ['+','-'] },
+  'HX711':      { x: 900, y: 196, w: 132, side: 'L', pins: ['VCC','GND','DT','SCK'] },
+  'DS3231':     { x: 900, y: 376, w: 132, side: 'L', pins: ['VCC','GND','SDA','SCL'] },
+  'BOTAO FEED': { x: 900, y: 556, w: 148, side: 'L', pins: ['t1','t2'] },
+  'BOTAO TARA': { x: 900, y: 682, w: 148, side: 'L', pins: ['t1','t2'] },
+};
+const PIN_STEP = 24, BOX_PAD = 30;
+function modPin(mod, pin) {
+  const m = MODS[mod], i = m.pins.indexOf(pin);
+  if (i >= 0) return { x: m.side === 'R' ? m.x + m.w : m.x, y: m.y + BOX_PAD + i * PIN_STEP, side: m.side };
+  const j = (m.pinsL || []).indexOf(pin);
+  return { x: m.x, y: m.y + BOX_PAD + j * PIN_STEP, side: 'L' };
+}
+
+// ---------- modos ----------
+const MODOS = {
+  usb: { titulo: 'Bancada (USB)', desc: 'O ESP32 e alimentado pelo cabo USB do Mac enquanto voce grava firmware. A fonte de 12V entra so no driver e no buzzer. O LM2596 fica FORA do VIN.' },
+  fonte: { titulo: 'Montagem final (so a fonte)', desc: 'Sem USB. O LM2596 alimenta o VIN do ESP32 e a fonte de 12V sustenta tudo. E assim que o aparelho vive na casa dos seus pais.' },
+};
+
+// ---------- etapas ----------
+const ETAPAS = {
+  1: { titulo: 'Etapa 1: energia',
+       nota: 'Monte o trilho de 12V a partir do conector P4 e <b>ajuste o LM2596 para 5,0 V antes de conectar a saida dele em qualquer lugar</b>. Ele sai de fabrica em tensao arbitraria, as vezes 12V direto - ajustar depois de plugar o ESP32 significa queimar o ESP32. O 3V3 nao vem do LM2596: ele sai do proprio pino 3V3 da placa, que ja tem regulador interno. <b>Fecha quando:</b> o multimetro le 5,0 V na saida do LM2596 e 3,3 V no pino da placa.',
+       notaUsb: 'Modo bancada: <b>o USB do Mac alimenta o ESP32</b> e a saida do LM2596 fica desconectada do VIN (fio tracejado). Voce ainda monta e ajusta o LM2596 agora, porque medir com calma e mais facil do que medir com pressa depois. O pino 3V3 da placa alimenta o trilho 3V3. <b>Fecha quando:</b> o multimetro le 5,0 V na saida do LM2596 e 3,3 V no trilho.' },
+  2: { titulo: 'Etapa 2: motor',
+       nota: 'O capacitor de 470uF vai <b>o mais perto possivel</b> dos pinos VMOT e GND do driver: e ali que ele absorve os picos de corrente do chaveamento. Ele tem polaridade - a faixa clara e o negativo e vai no GND; invertido, estufa. Ligue SLEEP e RESET um no outro e ambos no 3V3, senao o driver nunca acorda (causa numero um de "o motor nao gira e nao da erro"). Ajuste o VREF para 0,50 V com o <b>motor desconectado</b>. <b>Fecha quando:</b> o eixo da exatamente uma volta (1600 pulsos em 1/8 de micropasso) e para, sem esquentar.' },
+  3: { titulo: 'Etapa 3: balanca',
+       nota: 'O HX711 e alimentado com <b>3,3 V, nunca 5 V</b>: a saida de dados dele acompanha a alimentacao, e com 5 V voce entrega 5 V a um pino que tolera 3,3 V. A celula de carga tem quatro fios com cores padronizadas - o detalhe abaixo mostra qual vai onde. <b>Fecha quando:</b> a leitura bate com um peso conhecido dentro de mais ou menos 2 g.',
+       detalhe: '<svg viewBox="0 0 660 250" role="img" aria-label="Ligacao dos quatro fios da celula de carga no HX711"><rect x="30" y="60" width="150" height="130" rx="10" fill="var(--mod-bg)" stroke="var(--mod-edge)" stroke-width="2"/><text x="105" y="52" fill="var(--text)" font-size="12.5" font-weight="700" text-anchor="middle">CELULA 5 kg</text><circle cx="180" cy="88" r="4" fill="#e5484d"/><text x="168" y="92" fill="var(--pin-dot)" font-size="11" text-anchor="end" font-family="ui-monospace, Menlo, monospace">vermelho</text><circle cx="180" cy="120" r="4" fill="#101010" stroke="var(--pin-dot)"/><text x="168" y="124" fill="var(--pin-dot)" font-size="11" text-anchor="end" font-family="ui-monospace, Menlo, monospace">preto</text><circle cx="180" cy="152" r="4" fill="#f0f2f4"/><text x="168" y="156" fill="var(--pin-dot)" font-size="11" text-anchor="end" font-family="ui-monospace, Menlo, monospace">branco</text><circle cx="180" cy="184" r="4" fill="#34c98e"/><text x="168" y="188" fill="var(--pin-dot)" font-size="11" text-anchor="end" font-family="ui-monospace, Menlo, monospace">verde</text><path d="M 180 88 C 280 88, 340 88, 430 88" fill="none" stroke="#e5484d" stroke-width="3" stroke-linecap="round"/><path d="M 180 120 C 280 120, 340 120, 430 120" fill="none" stroke="#8a8f96" stroke-width="3" stroke-linecap="round"/><path d="M 180 152 C 280 152, 340 152, 430 152" fill="none" stroke="#f0f2f4" stroke-width="3" stroke-linecap="round"/><path d="M 180 184 C 280 184, 340 184, 430 184" fill="none" stroke="#34c98e" stroke-width="3" stroke-linecap="round"/><rect x="430" y="60" width="150" height="130" rx="10" fill="var(--mod-bg)" stroke="var(--mod-edge)" stroke-width="2"/><text x="505" y="52" fill="var(--text)" font-size="12.5" font-weight="700" text-anchor="middle">HX711</text><circle cx="430" cy="88" r="4" fill="var(--pin-dot)"/><text x="442" y="92" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">E+</text><circle cx="430" cy="120" r="4" fill="var(--pin-dot)"/><text x="442" y="124" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">E-</text><circle cx="430" cy="152" r="4" fill="var(--pin-dot)"/><text x="442" y="156" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">A-</text><circle cx="430" cy="184" r="4" fill="var(--pin-dot)"/><text x="442" y="188" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">A+</text><text x="330" y="222" fill="var(--muted)" font-size="11.5" text-anchor="middle">a seta gravada no corpo da celula aponta o sentido da forca</text></svg><p class="cap">Vermelho em E+, preto em E-, branco em A-, verde em A+. Se o peso subir quando deveria descer, troque branco e verde entre si - e o mesmo efeito de inverter o sinal, sem mexer no firmware. A celula monta em balanco: uma ponta parafusada na base, a outra livre sustentando o prato, com a seta do corpo apontando para baixo.</p>' },
+  4: { titulo: 'Etapa 4: relogio',
+       nota: 'O DS3231 tem bateria propria e guarda a hora mesmo sem energia. E ele que cumpre o principio do projeto: se faltar luz e a internet demorar a voltar, a placa acorda sabendo que horas sao e alimenta no horario. O I2C e um <b>barramento</b> - mais modulos entram nesses mesmos dois fios depois, cada um com seu endereco. <b>Fecha quando:</b> a hora lida bate com a real depois de tirar e religar a energia.' },
+  5: { titulo: 'Etapa 5: buzzer',
+       nota: 'O GPIO entrega 3,3 V e alguns miliamperes; o buzzer quer 12 V. O BC337 faz essa ponte. <b>Nunca ligue o buzzer direto no GPIO.</b> O resistor de 1k na base nao e opcional: sem ele a corrente de base fica sem limite e voce leva junto o transistor e possivelmente o pino. <b>Fecha quando:</b> o buzzer toca por comando do firmware e para sozinho.',
+       detalhe: '<svg viewBox="0 0 660 250" role="img" aria-label="Circuito do buzzer com transistor BC337 e diodo de protecao"><rect x="30" y="24" width="600" height="12" rx="6" fill="#e5484d" opacity="0.9"/><text x="36" y="18" fill="var(--muted)" font-size="11">trilho 12V</text><rect x="30" y="212" width="600" height="12" rx="6" fill="var(--wire-gnd)" opacity="0.9"/><text x="36" y="242" fill="var(--muted)" font-size="11">trilho GND</text><rect x="228" y="62" width="74" height="34" rx="6" fill="var(--panel)" stroke="#ff7ab2" stroke-width="1.5"/><text x="265" y="84" fill="var(--text)" font-size="11" font-weight="700" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">buzzer</text><path d="M 265 36 L 265 62" fill="none" stroke="#e5484d" stroke-width="3"/><path d="M 265 96 L 265 132" fill="none" stroke="#ff7ab2" stroke-width="3"/><path d="M 380 36 L 380 79 L 300 79" fill="none" stroke="#e5484d" stroke-width="2.5" stroke-dasharray="0"/><polygon points="352,72 352,86 338,79" fill="var(--panel)" stroke="#e5484d" stroke-width="2"/><line x1="338" y1="70" x2="338" y2="88" stroke="#e5484d" stroke-width="2.5"/><text x="392" y="70" fill="var(--muted)" font-size="11">1N4007 (faixa para o +12V)</text><circle cx="265" cy="132" r="4" fill="var(--pin-dot)"/><text x="278" y="128" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">C</text><path d="M 265 132 L 265 178" fill="none" stroke="var(--pin-dot)" stroke-width="3"/><text x="278" y="160" fill="var(--text)" font-size="12" font-weight="700">BC337</text><circle cx="265" cy="178" r="4" fill="var(--pin-dot)"/><text x="278" y="192" fill="var(--pin-dot)" font-size="11.5" font-family="ui-monospace, Menlo, monospace">E</text><path d="M 265 178 L 265 212" fill="none" stroke="var(--wire-gnd)" stroke-width="3"/><path d="M 120 155 L 245 155 L 265 155" fill="none" stroke="#ff7ab2" stroke-width="3" stroke-linecap="round"/><circle cx="265" cy="155" r="4" fill="var(--pin-dot)"/><text x="252" y="148" fill="var(--pin-dot)" font-size="11.5" text-anchor="end" font-family="ui-monospace, Menlo, monospace">B</text><rect x="148" y="146" width="52" height="18" rx="4" fill="var(--panel)" stroke="#ff7ab2" stroke-width="1.5"/><text x="174" y="159" fill="var(--text)" font-size="10.5" font-weight="700" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">1k</text><rect x="30" y="132" width="90" height="46" rx="9" fill="var(--esp-bg)" stroke="var(--esp-edge)" stroke-width="2"/><text x="75" y="160" fill="var(--pin-dot)" font-size="12" font-weight="700" text-anchor="middle">GPIO 17</text></svg><p class="cap">Com a face plana do BC337 virada para voce e os pinos para baixo, a ordem e Emissor, Base, Coletor - da esquerda para a direita. O BC547 tem corpo identico e ordem inversa: trocar nao queima na hora, so nao chaveia, e voce perde a tarde depurando firmware que esta certo.</p>' },
+  6: { titulo: 'Etapa 6: botoes',
+       nota: 'Cada botao tem dois terminais: um vai ao GPIO, o outro ao GND. Nao precisa de resistor externo - o firmware liga o pull-up interno, entao o pino fica alto em repouso e vai a zero quando apertado. Ignore mudancas por 50 ms depois da primeira transicao, senao o contato mecanico oscila e um toque vira varias doses. <b>Fecha quando:</b> um toque dispara uma dose so, e segurar cinco segundos entra em modo de configuracao.' },
+};
+
+// ---------- fios ----------
+const FIOS = [
+  // etapa 1: energia
+  { de: 'FONTE 12V:+12V', para: 'RAIL 12V', cor: 'v12', et: 1, nota: 'positivo do conector P4 alimenta o trilho de 12V' },
+  { de: 'FONTE 12V:GND', para: 'RAIL GND', cor: 'gnd', et: 1, nota: 'negativo da fonte fecha o terra comum' },
+  { de: 'LM2596:IN+', para: 'RAIL 12V', cor: 'v12', et: 1, nota: 'entrada do regulador' },
+  { de: 'LM2596:IN-', para: 'RAIL GND', cor: 'gnd', et: 1, nota: '' },
+  { de: 'LM2596:OUT+', para: 'RAIL 5V', cor: 'v5', et: 1, nota: 'SO depois de medir 5,0 V no multimetro' },
+  { de: 'LM2596:OUT-', para: 'RAIL GND', cor: 'gnd', et: 1, nota: '' },
+  { de: 'RAIL 5V', para: 'ESP:VIN', cor: 'v5', et: 1, modo: 'fonte', nota: 'o LM2596 alimenta a placa: so sem USB plugado' },
+  { de: 'RAIL 5V', para: 'ESP:VIN', cor: 'v5', et: 1, modo: 'usb', dash: true, nota: 'modo bancada: NAO conecte. O USB do Mac esta alimentando a placa' },
+  { de: 'ESP:GND', para: 'RAIL GND', cor: 'gnd', et: 1, nota: 'GND da placa no trilho comum' },
+  { de: 'ESP:3V3', para: 'RAIL 3V3', cor: 'v33', et: 1, nota: 'o proprio ESP32 gera o 3V3 que alimenta HX711 e DS3231' },
+  // etapa 2: motor
+  { de: 'CAP 470uF:+', para: 'RAIL 12V', cor: 'v12', et: 2, nota: 'positivo do capacitor; monte junto ao VMOT do driver' },
+  { de: 'CAP 470uF:-', para: 'RAIL GND', cor: 'gnd', et: 2, nota: 'faixa clara = negativo. Invertido, ele estufa' },
+  { de: 'DRV8825:VMOT', para: 'RAIL 12V', cor: 'v12', et: 2, nota: 'tensao dos motores, direto da fonte' },
+  { de: 'DRV8825:GND', para: 'RAIL GND', cor: 'gnd', et: 2, nota: 'GND do driver no comum' },
+  { de: 'DRV8825:VDD', para: 'RAIL 3V3', cor: 'v33', et: 2, nota: 'logica do driver em 3V3' },
+  { de: 'DRV8825:SLEEP', para: 'DRV8825:RESET', cor: 'mot', et: 2, nota: 'jumper entre os dois, e o par vai ao 3V3' },
+  { de: 'DRV8825:RESET', para: 'RAIL 3V3', cor: 'v33', et: 2, nota: 'sem isso o driver nunca acorda' },
+  { de: 'DRV8825:STEP', para: 'ESP:D26', cor: 'mot', et: 2, nota: 'cada pulso avanca um micropasso' },
+  { de: 'DRV8825:DIR', para: 'ESP:D27', cor: 'mot', et: 2, nota: 'sentido de giro; inverta no firmware se sair ao contrario' },
+  { de: 'DRV8825:ENABLE', para: 'ESP:D25', cor: 'mot', et: 2, nota: 'ativo em nivel BAIXO. Alto em repouso = motor parado, sem esquentar' },
+  { de: 'DRV8825:A1', para: 'NEMA 17:A1', cor: 'mot', et: 2, nota: 'bobina A. Fios do mesmo par tem baixa resistencia entre si' },
+  { de: 'DRV8825:A2', para: 'NEMA 17:A2', cor: 'mot', et: 2, nota: 'bobina A' },
+  { de: 'DRV8825:B1', para: 'NEMA 17:B1', cor: 'mot', et: 2, nota: 'bobina B' },
+  { de: 'DRV8825:B2', para: 'NEMA 17:B2', cor: 'mot', et: 2, nota: 'bobina B' },
+  // etapa 3: balanca
+  { de: 'HX711:VCC', para: 'RAIL 3V3', cor: 'v33', et: 3, nota: '3,3 V. Com 5 V a saida de dados sai em 5 V e agride o GPIO' },
+  { de: 'HX711:GND', para: 'RAIL GND', cor: 'gnd', et: 3, nota: '' },
+  { de: 'HX711:DT', para: 'ESP:RX2', cor: 'bal', et: 3, nota: 'dados da balanca (GPIO 16)' },
+  { de: 'HX711:SCK', para: 'ESP:D4', cor: 'bal', et: 3, nota: 'clock da balanca' },
+  // etapa 4: relogio
+  { de: 'DS3231:VCC', para: 'RAIL 3V3', cor: 'v33', et: 4, nota: '' },
+  { de: 'DS3231:GND', para: 'RAIL GND', cor: 'gnd', et: 4, nota: '' },
+  { de: 'DS3231:SDA', para: 'ESP:D21', cor: 'i2c', et: 4, nota: 'I2C SDA, endereco 0x68' },
+  { de: 'DS3231:SCL', para: 'ESP:D22', cor: 'i2c', et: 4, nota: 'I2C SCL' },
+  // etapa 5: buzzer
+  { de: 'BUZZER 12V:+', para: 'RAIL 12V', cor: 'v12', et: 5, nota: 'positivo do buzzer no trilho de 12V' },
+  { de: 'BUZZER 12V:-', para: 'BC337:C', cor: 'buz', et: 5, nota: 'negativo do buzzer no coletor. O 1N4007 vai em paralelo com o buzzer' },
+  { de: 'BC337:B', para: 'ESP:TX2', cor: 'buz', et: 5, nota: 'base pelo GPIO 17, SEMPRE com 1k em serie', resistor: '1k' },
+  { de: 'BC337:E', para: 'RAIL GND', cor: 'gnd', et: 5, nota: 'emissor no terra comum' },
+  // etapa 6: botoes
+  { de: 'BOTAO FEED:t1', para: 'ESP:D33', cor: 'bot', et: 6, nota: 'toque alimenta; segurar 5 s abre a configuracao de WiFi' },
+  { de: 'BOTAO FEED:t2', para: 'RAIL GND', cor: 'gnd', et: 6, nota: 'pull-up interno no firmware, sem resistor externo' },
+  { de: 'BOTAO TARA:t1', para: 'ESP:D32', cor: 'bot', et: 6, nota: 'zera a balanca com o prato vazio' },
+  { de: 'BOTAO TARA:t2', para: 'RAIL GND', cor: 'gnd', et: 6, nota: 'monte longe do outro botao: apertar por engano estraga a calibracao' },
+];
+
+// ---------- resolucao de pontos ----------
+function ponto(ref) {
+  if (ref.startsWith('RAIL')) return { rail: ref, y: RAIL[ref].y };
+  const [mod, pin] = ref.split(':');
+  if (mod === 'ESP') {
+    const p = espPin[pin];
+    return { x: p.side === 'L' ? p.x - 6 : p.x + 6, y: p.y, side: p.side };
+  }
+  const p = modPin(mod, pin);
+  return { x: p.side === 'R' ? p.x + 6 : p.x - 6, y: p.y, side: p.side };
+}
+function caminho(a, b) {
+  if (a.rail || b.rail) {
+    const fixo = a.rail ? b : a, rail = a.rail ? a : b;
+    const x = fixo.x + (fixo.side === 'R' ? 24 : -24);
+    return `M ${fixo.x} ${fixo.y} C ${x} ${fixo.y}, ${x} ${fixo.y}, ${x} ${(fixo.y + rail.y) / 2} L ${x} ${rail.y}`;
+  }
+  const dx = Math.abs(b.x - a.x), sag = Math.min(70, Math.max(26, dx * 0.4));
+  const c1x = a.x + (a.side === 'R' ? sag : -sag), c2x = b.x + (b.side === 'R' ? sag : -sag);
+  return `M ${a.x} ${a.y} C ${c1x} ${a.y}, ${c2x} ${b.y}, ${b.x} ${b.y}`;
+}
+
+// ---------- render ----------
+const svg = document.getElementById('svg');
+const NS = 'http://www.w3.org/2000/svg';
+const fioEls = [];
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(e); return e;
+}
+function desenhaBase() {
+  for (const nome in RAIL) {
+    const r = RAIL[nome];
+    el('rect', { x: 30, y: r.y - 7, width: 1240, height: 14, rx: 7, fill: r.cor, opacity: 0.85 });
+    el('text', { x: 40, y: r.y - 13, fill: 'var(--muted)', 'font-size': 12, 'font-family': 'ui-monospace, Menlo, monospace' }).textContent = r.label;
+  }
+  el('rect', { x: ESP.x, y: ESP.y, width: ESP.w, height: ESP.h, rx: 12, fill: 'var(--esp-bg)', stroke: 'var(--esp-edge)', 'stroke-width': 2 });
+  el('rect', { x: ESP.x + 55, y: ESP.y + 8, width: 60, height: 44, rx: 4, fill: 'var(--esp-edge)' });
+  const t = el('text', { x: ESP.x + ESP.w / 2, y: ESP.y + ESP.h / 2, fill: 'var(--pin-dot)', 'font-size': 15, 'font-weight': 700, 'text-anchor': 'middle', transform: `rotate(-90 ${ESP.x + ESP.w / 2} ${ESP.y + ESP.h / 2})` });
+  t.textContent = 'ESP32 DevKit 30p (USB embaixo)';
+  el('text', { x: ESP.x + ESP.w / 2, y: ESP.y + ESP.h + 26, fill: 'var(--muted)', 'font-size': 12, 'text-anchor': 'middle', 'font-family': 'ui-monospace, Menlo, monospace' }).textContent = 'USB';
+  for (const pin in espPin) {
+    const p = espPin[pin];
+    el('circle', { cx: p.x, cy: p.y, r: 3.4, fill: 'var(--pin-dot)' });
+    el('text', { x: p.side === 'L' ? p.x + 10 : p.x - 10, y: p.y + 4, fill: 'var(--pin-dot)', 'font-size': 11.5, 'font-family': 'ui-monospace, Menlo, monospace', 'text-anchor': p.side === 'L' ? 'start' : 'end' }).textContent = p.label;
+  }
+  for (const nome in MODS) {
+    const m = MODS[nome];
+    const g = el('g', {});
+    const h = BOX_PAD + m.pins.length * PIN_STEP;
+    el('rect', { x: m.x, y: m.y, width: m.w, height: h, rx: 9, fill: 'var(--mod-bg)', stroke: 'var(--mod-edge)', 'stroke-width': 1.5 }, g);
+    el('text', { x: m.x + m.w / 2, y: m.y + 18, fill: 'var(--pin-dot)', 'font-size': 12.5, 'font-weight': 700, 'text-anchor': 'middle' }, g).textContent = nome;
+    m.pins.forEach((pin, i) => {
+      const px = m.side === 'R' ? m.x + m.w : m.x, py = m.y + BOX_PAD + i * PIN_STEP;
+      el('circle', { cx: px, cy: py, r: 3, fill: 'var(--pin-dot)' }, g);
+      el('text', { x: m.side === 'R' ? px - 8 : px + 8, y: py + 4, fill: 'var(--pin-dot)', 'font-size': 11, 'font-family': 'ui-monospace, Menlo, monospace', 'text-anchor': m.side === 'R' ? 'end' : 'start' }, g).textContent = pin;
+    });
+    (m.pinsL || []).forEach((pin, i) => {
+      const px = m.x, py = m.y + BOX_PAD + i * PIN_STEP;
+      el('circle', { cx: px, cy: py, r: 3, fill: 'var(--pin-dot)' }, g);
+      el('text', { x: px + 8, y: py + 4, fill: 'var(--pin-dot)', 'font-size': 11, 'font-family': 'ui-monospace, Menlo, monospace', 'text-anchor': 'start' }, g).textContent = pin;
+    });
+  }
+}
+function desenhaFios() {
+  FIOS.forEach((f) => {
+    const a = ponto(f.de), b = ponto(f.para);
+    const d = caminho(a, b);
+    const cor = COR[f.cor].c;
+    const g = el('g', {});
+    el('path', { d, fill: 'none', stroke: cor, 'stroke-width': 3, 'stroke-linecap': 'round', ...(f.dash ? { 'stroke-dasharray': '7 6' } : {}) }, g);
+    if (f.resistor) {
+      const path = g.firstChild, mid = path.getPointAtLength(path.getTotalLength() / 2);
+      const wTxt = f.resistor.length * 6.2 + 14;
+      el('rect', { x: mid.x - wTxt / 2, y: mid.y - 9, width: wTxt, height: 18, rx: 4, fill: 'var(--panel2)', stroke: cor, 'stroke-width': 1.5 }, g);
+      el('text', { x: mid.x, y: mid.y + 4, fill: 'var(--text)', 'font-size': 10, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': 'ui-monospace, Menlo, monospace' }, g).textContent = f.resistor;
+    }
+    const tt = el('title', {}, g);
+    tt.textContent = `${f.de} -> ${f.para}${f.nota ? ' | ' + f.nota : ''}`;
+    fioEls.push({ f, g });
+  });
+}
+
+// ---------- interacao ----------
+let etapaAtiva = 1;
+let modoAtivo = 'usb';
+function fioVisivel(f) { return !f.modo || f.modo === modoAtivo; }
+function aplica() {
+  fioEls.forEach(({ f, g }) => {
+    if (!fioVisivel(f) || f.et > etapaAtiva) g.setAttribute('opacity', '0');
+    else if (f.et === etapaAtiva) g.setAttribute('opacity', '1');
+    else g.setAttribute('opacity', '0.22');
+  });
+  document.querySelectorAll('#chips .chip').forEach((c) => c.classList.toggle('on', +c.dataset.et === etapaAtiva));
+  document.querySelectorAll('#chipsModo .chip').forEach((c) => c.classList.toggle('on', c.dataset.modo === modoAtivo));
+  const e = ETAPAS[etapaAtiva];
+  const nota = (modoAtivo === 'usb' && e.notaUsb) ? e.notaUsb : e.nota;
+  document.getElementById('stageNote').innerHTML = `<b>${e.titulo}</b> [${MODOS[modoAtivo].titulo}]. ${nota}`;
+  document.getElementById('stageDetail').innerHTML = e.detalhe || '';
+  document.getElementById('tableTitle').textContent = `Conexoes da ${e.titulo.toLowerCase()} no modo ${MODOS[modoAtivo].titulo.toLowerCase()}`;
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = '';
+  FIOS.filter((f) => f.et === etapaAtiva && fioVisivel(f)).forEach((f) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="dot" style="background:${COR[f.cor].c}"></span>${COR[f.cor].nome}</td>` +
+      `<td class="mono">${f.de}</td><td class="mono">${f.para}</td><td>${f.nota || ''}</td>`;
+    tb.appendChild(tr);
+  });
+}
+const chipsModo = document.getElementById('chipsModo');
+Object.keys(MODOS).forEach((mo) => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.dataset.modo = mo; b.textContent = MODOS[mo].titulo;
+  b.title = MODOS[mo].desc;
+  b.addEventListener('click', () => { modoAtivo = mo; aplica(); });
+  chipsModo.appendChild(b);
+});
+const chips = document.getElementById('chips');
+Object.keys(ETAPAS).forEach((et) => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.dataset.et = et;
+  b.textContent = ETAPAS[et].titulo.replace('Etapa ', 'Etapa ');
+  b.addEventListener('click', () => { etapaAtiva = +et; aplica(); });
+  chips.appendChild(b);
+});
+const lg = document.getElementById('legend');
+Object.values(COR).filter((v, i, a) => a.findIndex((x) => x.nome === v.nome) === i).forEach((v) => {
+  const s = document.createElement('span');
+  s.innerHTML = `<i style="background:${v.c}"></i>${v.nome}`;
+  lg.appendChild(s);
+});
+
+desenhaBase();
+desenhaFios();
+aplica();
+</script>
