@@ -66,7 +66,7 @@ já existente, e do lado da instalação não há nada a configurar: liga e cone
 | Capacitor 470 µF / 35 V | Estabiliza a alimentação do driver |
 | Protoboard, jumpers, resistores, conectores P4 | Montagem de bancada |
 
-### A comprar (~R$ 50)
+### A comprar (~R$ 75)
 
 | Item | Por quê |
 |---|---|
