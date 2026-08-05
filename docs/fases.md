@@ -45,6 +45,25 @@ conectar o ESP32 significa queimar o ESP32.
 Se o motor apenas vibra sem girar, quase sempre é par de bobinas trocado. Meça a
 continuidade: os fios de um mesmo par têm baixa resistência entre si.
 
+### Dois firmwares para esta fase
+
+| Modo | Grava com | Para quê |
+|---|---|---|
+| `loop` | `pio run -e loop -t upload` | Liga na tomada e gira sozinho, 10 s de cada lado, para sempre. Teste de campo e de resistência, sem computador por perto. |
+| `menu` | `pio run -e menu -t upload` | Comandos por serial (`f`, `t`, `F 5`, `v 120`, `h`) e página web. Para investigar com precisão. |
+
+### Rodando sem USB
+
+Os três precisam estar ligados, ou nada acontece:
+
+1. **12 V da fonte** no `UMOT` do driver
+2. **5 V do LM2596** no `VIN` do ESP32
+3. **GND comum** entre fonte, driver e placa
+
+O item 2 é o que se esquece. Sem ele o ESP32 não liga, e sem ESP32 não há 3,3 V para
+segurar `SLP`, `RST`, `M0` e `M1` — o driver fica dormindo e o motor não se move, mesmo
+com os 12 V presentes e tudo parecendo certo.
+
 ---
 
 ## Fase 03 — Balança e calibração
