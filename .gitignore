@@ -24,3 +24,6 @@ secrets/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# credenciais locais do firmware
+firmware/include/secrets.h
