@@ -3,9 +3,12 @@
 #pragma once
 
 // --- DRV8825 / NEMA 17 ---
-#define PIN_STEP        26
-#define PIN_DIR         27
-#define PIN_ENABLE      25   // ativo em nivel BAIXO
+// Serigrafia da placa: STP, DIR, EN. Nao existe VDD (logica vem do UMOT).
+// SLP+RST jumpeados no 3V3; M0+M1 no 3V3 e M2 solto = 1/8 de micropasso.
+// Bobinas: 1A com 1B, 2A com 2B - nunca 1A com 2A.
+#define PIN_STEP        26   // -> STP
+#define PIN_DIR         27   // -> DIR
+#define PIN_ENABLE      25   // -> EN, ativo em nivel BAIXO
 
 // --- HX711 (celula de carga sob o prato) ---
 #define PIN_HX711_DT    16

@@ -6,9 +6,9 @@ Ligações completas entre o ESP32-WROOM-32 e os módulos, com a justificativa d
 
 | ESP32 | Módulo | Pino | Tipo | Observação |
 |---|---|---|---|---|
-| GPIO 26 | DRV8825 | STEP | saída | Cada pulso avança um micropasso |
-| GPIO 27 | DRV8825 | DIR | saída | Sentido de giro; inverter no firmware se sair ao contrário |
-| GPIO 25 | DRV8825 | ENABLE | saída | Ativo em nível BAIXO. Manter ALTO em repouso |
+| GPIO 26 | DRV8825 | `STP` | saída | Cada pulso avança um micropasso |
+| GPIO 27 | DRV8825 | `DIR` | saída | Sentido de giro; inverter no firmware se sair ao contrário |
+| GPIO 25 | DRV8825 | `EN` | saída | Ativo em nível BAIXO. Manter ALTO em repouso |
 | GPIO 16 | HX711 | DT / DOUT | entrada | Dados da balança |
 | GPIO 4 | HX711 | SCK | saída | Clock da balança |
 | GPIO 21 | DS3231 | SDA | I²C | Barramento, aceita mais módulos |
@@ -36,13 +36,50 @@ O ESP32 tem 34 GPIOs e boa parte é armadilha:
 Os pinos escolhidos ficam fora dessas faixas e estão agrupados fisicamente, o que mantém o
 chicote organizado.
 
-## Jumpers do DRV8825
+## DRV8825: os 16 pinos
 
-- **RESET e SLEEP** ligados um no outro e ambos em 3,3 V. Sem isso o driver nunca sai do
+A serigrafia usa abreviações. Equivalências:
+
+| Serigrafia | É o | Destino |
+|---|---|---|
+| `STP` | STEP | GPIO 26 |
+| `DIR` | DIR | GPIO 27 |
+| `EN` | ENABLE (ativo em baixo) | GPIO 25 |
+| `SLP` | SLEEP | jumper com `RST`, e o par no 3,3 V |
+| `RST` | RESET | jumper com `SLP`, e o par no 3,3 V |
+| `M0` `M1` `M2` | seleção de micropasso | `M0` e `M1` no 3,3 V, `M2` solto |
+| `UMOT` | VMOT (notação europeia, U = tensão) | trilho 12 V |
+| `1A` `1B` | bobina 1 do motor | par entre si |
+| `2A` `2B` | bobina 2 do motor | par entre si |
+| `FLT` | FAULT (saída de falha, dreno aberto) | deixar solto |
+| `GND` ×2 | terra lógico e terra de potência | ambos no terra comum |
+
+> **Não existe pino VDD.** O DRV8825 gera a própria alimentação lógica internamente a
+> partir do UMOT. Quem tem VDD é o A4988, que é fisicamente parecido — confundir os dois é
+> comum. O que precisa ir ao 3,3 V são `SLP` e `RST`.
+
+### Orientação da placa
+
+Placas iguais aparecem em orientações opostas nos tutoriais. Lendo a serigrafia com `DIR`
+no topo do lado esquerdo, a ordem é:
+
+```
+esquerda (topo → base):  DIR  STP  SLP  RST  M2  M1  M0  EN
+direita  (topo → base):  GND  FLT  2A   1A   1B  2B  GND  UMOT
+```
+
+Virando 180°, essa mesma placa dá a ordem dos diagramas mais comuns. **A serigrafia é a
+fonte da verdade, não a posição na bancada.** Confira o nome impresso ao lado de cada pino
+antes de espetar o jumper.
+
+### Jumpers obrigatórios
+
+- **`SLP` e `RST`** ligados um no outro e o par em 3,3 V. Sem isso o driver nunca sai do
   repouso — é a causa número um de "o motor não gira e não aparece erro nenhum".
-- **Micropasso 1/8:** MS0 e MS1 em nível ALTO, MS2 livre.
+- **Micropasso 1/8:** `M0` e `M1` em nível ALTO, `M2` solto. Os pinos de modo têm pull-down
+  interno, então deixar solto já vale como nível baixo.
 
-| MS0 | MS1 | MS2 | Resolução |
+| M0 | M1 | M2 | Resolução |
 |---|---|---|---|
 | baixo | baixo | baixo | passo inteiro |
 | alto | baixo | baixo | 1/2 |
@@ -50,6 +87,17 @@ chicote organizado.
 | alto | alto | baixo | **1/8 (usado)** |
 | baixo | baixo | alto | 1/16 |
 | alto | alto | alto | 1/32 |
+
+### Bobinas: quem é par de quem
+
+**`1A` faz par com `1B`; `2A` faz par com `2B`.** Não é `1A` com `2A`. Na placa os pinos
+ainda aparecem intercalados (`2A 1A 1B 2B`), então o par externo é o 2 e o interno é o 1.
+Ligar como se `1A` e `2A` fossem par faz o motor apenas vibrar e travar.
+
+Para achar os pares nos quatro fios do NEMA 17: multímetro em resistência, motor
+desconectado, testando os fios dois a dois. **Fios do mesmo par acusam 2 a 3 Ω; de pares
+diferentes, nada.** Qual par você chama de 1 e qual de 2 é indiferente — no máximo o motor
+gira ao contrário, e aí basta inverter o `DIR` no firmware.
 
 Com 1/8 de micropasso, uma volta completa do NEMA 17 são **1600 pulsos** (200 passos × 8).
 

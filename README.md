@@ -105,9 +105,9 @@ Etapas já feitas ficam esmaecidas, a atual em destaque, as futuras ocultas.
 
 | ESP32 | Vai para | Observação |
 |---|---|---|
-| GPIO 26 | DRV8825 · STEP | Cada pulso, um micropasso |
-| GPIO 27 | DRV8825 · DIR | Sentido de giro |
-| GPIO 25 | DRV8825 · ENABLE | Ativo em nível baixo |
+| GPIO 26 | DRV8825 · `STP` | Cada pulso, um micropasso |
+| GPIO 27 | DRV8825 · `DIR` | Sentido de giro |
+| GPIO 25 | DRV8825 · `EN` | Ativo em nível baixo |
 | GPIO 16 | HX711 · DT | Dados da balança |
 | GPIO 4 | HX711 · SCK | Clock da balança |
 | GPIO 21 | DS3231 · SDA | I²C |
@@ -130,6 +130,8 @@ Etapas já feitas ficam esmaecidas, a atual em destaque, as futuras ocultas.
    5 V a um pino que tolera 3,3 V.
 3. **Mexer no motor com a placa energizada.** Conectar ou desconectar as bobinas do NEMA
    com o DRV8825 ligado destrói o driver na hora.
+3. **Trocar os pares de bobina.** `1A` faz par com `1B`, `2A` com `2B`. Ligar `1A` com `2A`
+   faz o motor só vibrar. Ache os pares medindo resistência: mesmo par dá 2 a 3 Ω.
 4. **Capacitor invertido.** A faixa clara marca o negativo, que vai no GND. Invertido, estufa.
 
 ### Ajuste de corrente do DRV8825
