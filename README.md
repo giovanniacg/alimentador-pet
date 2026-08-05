@@ -73,7 +73,7 @@ já existente, e do lado da instalação não há nada a configurar: liga e cone
 | BC337 (NPN) | Chaveia o buzzer de 12 V pelo GPIO de 3,3 V. **Não use IRFZ44N** — não é logic level, não satura com 3,3 V |
 | 1N4007 | Diodo de proteção contra pico indutivo |
 | RTC DS3231 | Relógio com bateria. Sem ele, após queda de energia sem internet a placa não sabe a hora e não alimenta |
-| Botão push 12 mm | Dose manual sem app e sem rede |
+| 2x Botão inox 12 mm IP66 | Dose manual sem app/rede e tara da balança. IP66 aguenta respingo na área do comedouro |
 
 ### Em aberto
 
@@ -97,7 +97,8 @@ Detalhe completo e justificativa de cada escolha em [`docs/pinagem.md`](docs/pin
 | GPIO 21 | DS3231 · SDA | I²C |
 | GPIO 22 | DS3231 · SCL | I²C |
 | GPIO 17 | Base do BC337 | Sempre com resistor de 1 kΩ |
-| GPIO 33 | Botão manual | Outro lado no GND, pull-up interno |
+| GPIO 33 | Botão frente | Alimentar / config WiFi. Pull-up interno |
+| GPIO 32 | Botão traseiro | Tara da balança. Pull-up interno |
 | GPIO 2 | LED da placa | Status |
 | VIN | Saída do LM2596 | Confira 5,0 V antes de conectar |
 | 3V3 | HX711 e DS3231 | **Nunca 5 V** |

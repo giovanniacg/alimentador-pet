@@ -19,8 +19,13 @@
 #define PIN_BUZZER      17   // sempre com 1k em serie na base
 
 // --- Interface fisica ---
-#define PIN_BOTAO       33   // INPUT_PULLUP, outro lado no GND
+// Botoes inox 12mm IP66, momentaneos (NA). INPUT_PULLUP, outro lado no GND.
+#define PIN_BOTAO_FEED  33   // frente:  toque = alimentar | 5s = config WiFi
+#define PIN_BOTAO_TARA  32   // atras:   toque = zerar balanca (prato vazio)
 #define PIN_LED          2   // LED onboard
+
+#define DEBOUNCE_MS     50
+#define HOLD_MS       5000   // limiar de "segurar"
 
 // --- Mecanica ---
 #define PASSOS_POR_VOLTA      200

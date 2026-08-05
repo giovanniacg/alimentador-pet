@@ -14,7 +14,8 @@ Ligações completas entre o ESP32-WROOM-32 e os módulos, com a justificativa d
 | GPIO 21 | DS3231 | SDA | I²C | Barramento padrão do ESP32 |
 | GPIO 22 | DS3231 | SCL | I²C | Barramento padrão do ESP32 |
 | GPIO 17 | BC337 | base | saída | **Sempre** com resistor de 1 kΩ em série |
-| GPIO 33 | Botão | — | entrada | Outro lado no GND, `INPUT_PULLUP` |
+| GPIO 33 | Botão frente | — | entrada | Alimentar / config WiFi. `INPUT_PULLUP` |
+| GPIO 32 | Botão traseiro | — | entrada | Tara da balança. `INPUT_PULLUP` |
 | GPIO 2 | LED onboard | — | saída | Já existe na placa |
 | VIN | LM2596 | saída | 5 V | Medir 5,0 V **antes** de conectar |
 | 3V3 | HX711, DS3231 | VCC | 3,3 V | Nunca 5 V nesses módulos |
@@ -107,3 +108,34 @@ depurando um firmware que está correto.
 6. Desligar a fonte, conectar o motor.
 7. HX711 e DS3231 em 3,3 V.
 8. Buzzer e botão.
+
+## Botões
+
+Dois botões inox 12 mm IP66, momentâneos (normalmente abertos). Cada um tem dois
+terminais: um vai ao GPIO, o outro ao GND. O firmware usa `INPUT_PULLUP`, então o pino
+fica em nível alto em repouso e vai a zero quando apertado.
+
+| Botão | Posição | Gesto | Função |
+|---|---|---|---|
+| Frente (GPIO 33) | acessível | toque | Alimentar agora, porção padrão |
+| | | segurar 5 s | Abrir portal de configuração de WiFi |
+| Traseiro (GPIO 32) | discreto | toque | Zerar a balança (tara) com o prato vazio |
+| | | segurar 5 s | reservado |
+
+**Por que a tara merece botão próprio.** Quem lava o prato e recoloca introduz um
+deslocamento constante na leitura: água parada, prato ligeiramente fora de posição, ou um
+prato diferente. A partir daí toda dose sai errada de forma silenciosa — pede-se 80 g e
+saem 60 g, todo dia, sem sintoma óbvio. Com o botão, o conserto é local e não depende de
+app nem de ninguém: prato vazio no lugar, um toque, pronto.
+
+O botão de tara fica fisicamente afastado do de alimentar de propósito. Lado a lado,
+alguém aperta por engano com ração no prato e a calibração vai junto.
+
+**Debounce:** contato mecânico oscila por alguns milissegundos ao fechar. Ignore mudanças
+por 50 ms depois da primeira transição, senão um toque vira várias doses.
+
+**Corpo metálico:** o invólucro do botão é inox. Em caixa plástica não há problema. Se a
+caixa for metálica, garanta que o corpo não encoste em nada energizado.
+
+- IP66: protegido contra poeira e jato d'água, adequado à área do comedouro.
+- Temperatura de operação: -22 a +55 °C.
