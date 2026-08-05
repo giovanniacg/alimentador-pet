@@ -12,7 +12,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=web
       # WebSocket seguro: e por aqui que ESP32 e app entram
-      - traefik.http.routers.mqtt.rule=Host(`mqtt.synaptha.com`)
+      - traefik.http.routers.mqtt.rule=Host(`${MQTT_HOST}`)
       - traefik.http.routers.mqtt.entrypoints=https
       - traefik.http.routers.mqtt.tls=true
       - traefik.http.routers.mqtt.tls.certresolver=letsencrypt

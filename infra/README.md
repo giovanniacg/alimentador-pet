@@ -1,6 +1,6 @@
 # Infraestrutura
 
-Broker MQTT (Mosquitto) atras do Traefik, exposto como `mqtt.synaptha.com` sobre
+Broker MQTT (Mosquitto) atras do Traefik, exposto como `$MQTT_HOST` sobre
 WebSocket seguro na porta 443.
 
 ## Por que WebSocket e nao MQTT nativo
@@ -11,7 +11,7 @@ precisa ser alcancavel pela internet aberta.
 WebSocket seguro na 443 resolve isso sem custo:
 
 - nenhuma porta nova exposta - entra pela 443 que o Traefik ja atende
-- certificado curinga `*.synaptha.com` ja existe, com renovacao automatica
+- certificado curinga do dominio ja existe, com renovacao automatica
 - o IP real da VPS continua escondido atras da Cloudflare
 - do lado da instalacao nao ha nada a configurar
 
@@ -26,7 +26,7 @@ docker run --rm -v "$PWD/config:/mosquitto/config" eclipse-mosquitto:2 \
   mosquitto_passwd -b /mosquitto/config/passwd app-giovanni SENHA_DO_APP
 
 # 2. subir
-docker compose -f mosquitto/compose.yml up -d
+docker compose --env-file .env -f mosquitto/compose.yml up -d
 ```
 
 As duas senhas vao para o cofre (Vaultwarden), nunca para o repositorio. O arquivo
@@ -35,7 +35,7 @@ As duas senhas vao para o cofre (Vaultwarden), nunca para o repositorio. O arqui
 ## Testar
 
 ```bash
-mosquitto_sub -h mqtt.synaptha.com -p 443 --ws -u app-giovanni -P SENHA \
+mosquitto_sub -h $MQTT_HOST -p 443 --ws -u app-giovanni -P SENHA \
   -t 'feeder/#' -v
 ```
 
