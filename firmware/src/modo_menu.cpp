@@ -192,6 +192,12 @@ void setup() {
 
   pinMode(PIN_ENABLE, OUTPUT);
   habilita(false);              // nasce solto: motor frio e livre
+
+  // DRV8825 exige pulso de STEP de no minimo 1,9 us em nivel alto. O padrao do
+  // AccelStepper e 1 us, e no ESP32 isso sai curto demais: o driver energiza as
+  // bobinas (motor fica duro) mas nao conta passo nenhum. 5 us da folga.
+  motor.setMinPulseWidth(5);
+
   motor.setMaxSpeed(pulsosPorSegundo(velocidadeRPM));
   motor.setAcceleration(pulsosPorSegundo(aceleracaoRPMs));
 
