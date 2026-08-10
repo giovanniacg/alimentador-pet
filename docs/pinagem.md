@@ -123,8 +123,20 @@ Com 1/8 de micropasso, uma volta completa do NEMA 17 são **1600 pulsos** (200 p
 ```
 Corrente por bobina = VREF × 2      (placas com resistor de sense de 0,1 Ω)
 
-Alvo: 1,0 A  →  VREF = 0,50 V
+Alvo: 1,4 A  →  VREF = 0,70 V
 ```
+
+O motor deste projeto é um NEMA 17 de 4,2 kg·cm, equivalente ao **17HE15-1504S**:
+**1,5 A por fase** de corrente nominal e **2,3 Ω** de resistência de fase. A medição de
+2 a 3 Ω entre os fios de cada par confere com esse número e confirma bobinas íntegras.
+
+O alvo de 0,70 V (1,4 A) fica logo abaixo do nominal, com folga térmica. Se faltar força
+com a rosca montada, dá para ir a 0,75 V.
+
+> **Correção de 10/08/2026.** Este documento recomendava 0,50 V (1,0 A), escolhido por
+> prudência térmica sem consultar o nominal do motor. É apertado demais para vencer o
+> atrito de uma rosca: o sintoma é o motor vibrar ou dar trancos fracos sem girar, que é
+> exatamente o que a bancada apresentou.
 
 Procedimento:
 
@@ -134,8 +146,11 @@ Procedimento:
 4. Gire devagar até ler 0,50 V.
 5. Desligue a fonte e só então conecte o motor.
 
-Um ampere é folgado para uma rosca sem-fim e mantém o driver frio. Se a ração compactar e
-travar, suba para 0,60 V.
+Se a ração compactar e travar mesmo em 0,70 V, suba de 0,05 em 0,05 V até 0,75 V, que é o
+nominal do motor. Acima disso o motor esquenta sem ganho real de torque útil.
+
+**Corrente baixa demais é a causa número um de "vibra mas não gira".** O fórum da Pololu
+registra o mesmo sintoma: abaixo de certo limiar de VREF, o motor treme sem rotacionar.
 
 > Algumas placas clone usam resistor de sense de 0,05 Ω, e nelas a conta é
 > `corrente = VREF × 4`. Confira o valor impresso nos resistores ao lado do chip antes de

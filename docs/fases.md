@@ -38,7 +38,7 @@ conectar o ESP32 significa queimar o ESP32.
 
 - Montar o driver com o capacitor de 470 µF junto aos pinos VMOT/GND
 - Ligar os jumpers de RESET e SLEEP em 3,3 V
-- Ajustar VREF para 0,50 V com o motor desconectado
+- Ajustar VREF para 0,70 V com o motor desconectado (1,4 A; o nominal do motor é 1,5 A)
 - Girar 1600 pulsos (uma volta em 1/8 de micropasso) e conferir
 - Testar os dois sentidos
 
