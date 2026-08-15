@@ -17,6 +17,9 @@
 #define PIN_STEP        26   // -> STP
 #define PIN_DIR         27   // -> DIR
 #define PIN_ENABLE      25   // -> EN, ativo em nivel BAIXO
+// Fonte de nivel alto para SLP e RST do driver, alternativa ao fio do 3V3.
+// Util quando o caminho do 3V3 esta em duvida: o firmware garante o HIGH.
+#define PIN_DRV_WAKE    14   // -> SLP e RST
 
 // --- HX711 (celula de carga sob o prato) ---
 #define PIN_HX711_DT    16
