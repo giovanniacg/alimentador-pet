@@ -174,14 +174,17 @@ Detalhe de cada fase em [`docs/fases.md`](docs/fases.md).
 
 ## Tópicos MQTT
 
+Contrato completo (payloads, retained, ACL) em [`docs/mqtt.md`](docs/mqtt.md), que é o canon.
+
 | Tópico | Quem escreve | Conteúdo |
 |---|---|---|
-| `feeder/<id>/status` | alimentador | online/offline, peso, sinal. *Retido* |
-| `feeder/<id>/schedule` | app | Horários e porções. *Retido* |
+| `feeder/<id>/state` | alimentador | online/offline, peso, última e próxima refeição. *Retido* |
+| `feeder/<id>/schedule` | alimentador | espelho da agenda vigente. *Retido* |
 | `feeder/<id>/cmd/feed` | app | Alimentar agora, em gramas |
 | `feeder/<id>/cmd/skip` | app | Pular a próxima refeição |
-| `feeder/<id>/event/fed` | alimentador | Pedido, entregue, gatilho |
-| `feeder/<id>/event/alert` | alimentador | Rosca travada, ração acabando, prato intocado |
+| `feeder/<id>/cmd/schedule` | app | Nova agenda completa (o firmware grava e espelha) |
+| `feeder/<id>/cmd/tare` | app | Tara da balança |
+| `feeder/<id>/event` | alimentador | refeição servida/falhou, botão apertado, ração acabando |
 
 O alimentador registra um *last will*: se ele cair, o broker publica sozinho o aviso de que
 sumiu. A descoberta é em segundos, sem ninguém precisar perguntar.

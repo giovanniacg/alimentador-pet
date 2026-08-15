@@ -1,15 +1,18 @@
 # Permissao por topico. Deny by default: o que nao esta aqui, nao passa.
+# Canon dos topicos: docs/mqtt.md (state retained, schedule espelhado pelo
+# firmware, comandos so via cmd/#).
 
 # O alimentador cuida apenas do proprio ramo.
 user feeder-sp01
-topic write feeder/sp01/status
-topic write feeder/sp01/event/#
+topic write feeder/sp01/state
+topic write feeder/sp01/schedule
+topic write feeder/sp01/event
 topic read  feeder/sp01/cmd/#
-topic read  feeder/sp01/schedule
 
-# O app comanda e observa.
+# O app comanda e observa. A agenda ele PEDE por cmd/schedule e LE o espelho:
+# quem escreve em feeder/+/schedule e so o firmware.
 user app-giovanni
-topic read  feeder/+/status
-topic read  feeder/+/event/#
+topic read  feeder/+/state
+topic read  feeder/+/schedule
+topic read  feeder/+/event
 topic write feeder/+/cmd/#
-topic readwrite feeder/+/schedule
