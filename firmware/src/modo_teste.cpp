@@ -38,13 +38,30 @@ void testeLed() {
   Serial.println("[LED] ok se voce viu piscar.");
 }
 
+// Sem tone(): o LEDC do core reclama de inicializacao. Bit-bang direto no pino,
+// que tambem separa o diagnostico: buzzer ATIVO apita no teste 1 (corrente
+// continua), buzzer PASSIVO apita no teste 2 (onda quadrada de 2 kHz).
 void testeBuzzer() {
-  Serial.println("[BUZZER] 3 bips...");
+  Serial.println("[BUZZER] teste 1: corrente continua (buzzer ATIVO apita aqui)...");
   for (int i = 0; i < 3; i++) {
-    tone(PIN_BUZZER, 2000, 150);
-    delay(300);
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(200);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(200);
   }
-  Serial.println("[BUZZER] ok se voce ouviu. Silencio = conferir BC337 (E-B-C) e resistor de 1k.");
+  delay(400);
+  Serial.println("[BUZZER] teste 2: onda de 2 kHz (buzzer PASSIVO apita aqui)...");
+  for (int i = 0; i < 3; i++) {
+    for (int c = 0; c < 400; c++) {          // 400 ciclos a 2 kHz = 200 ms
+      digitalWrite(PIN_BUZZER, HIGH);
+      delayMicroseconds(250);
+      digitalWrite(PIN_BUZZER, LOW);
+      delayMicroseconds(250);
+    }
+    delay(200);
+  }
+  Serial.println("[BUZZER] apitou no 1 = ativo; no 2 = passivo; em nenhum = conferir");
+  Serial.println("[BUZZER]   BC337 (E-B-C, tentar girar 180), resistor 1k e 12V no buzzer.");
 }
 
 void testeRtc() {
