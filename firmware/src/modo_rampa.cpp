@@ -1,4 +1,9 @@
-// Alimentador Pet - modo RAMPA
+// Alimentador Pet - modo RAMPA (calibrado para half step)
+//
+// Observacao de bancada (15/08): em 1/8 de micropasso o motor so vibra parado;
+// em half/full step ele se move, ainda que travando. Isso e assinatura de
+// CORRENTE INSUFICIENTE - em micropasso o empurrao por pulso e menor, entao
+// falta de torque aparece primeiro ali. O ajuste do VREF e o proximo passo.
 //
 // Corrige dois erros dos firmwares anteriores:
 //
@@ -19,10 +24,18 @@
 #include <Arduino.h>
 #include "pinout.h"
 
+// MODO DE MICROPASSO EM USO. Trocar aqui quando trocar os jumpers:
+//   200  = full step   (M0, M1, M2 todos soltos)
+//   400  = half step   (M0 no 3V3; M1 e M2 soltos)     <- em uso
+//   1600 = 1/8         (M0 e M1 no 3V3; M2 solto)
+// Isto muda a velocidade real: com o mesmo delay, menos micropasso = mais RPM.
+static const int PULSOS_VOLTA = 400;
+
 // Meio-periodo do pulso, em microssegundos. Delay MAIOR = mais devagar.
-static const unsigned US_INICIAL = 3500;   // arranque bem lento
-static const unsigned US_FINAL   = 900;    // cruzeiro
-static const unsigned PASSOS_RAMPA = 600;  // quantos pulsos para acelerar
+// Calibrado para half step: arranque ~7 RPM, cruzeiro ~20 RPM.
+static const unsigned US_INICIAL = 10000;  // arranque bem lento
+static const unsigned US_FINAL   = 3750;   // cruzeiro
+static const unsigned PASSOS_RAMPA = 300;  // quantos pulsos para acelerar
 
 unsigned long passos = 0;
 unsigned long ultimoLog = 0;
@@ -35,9 +48,8 @@ unsigned larguraAtual() {
 }
 
 float rpmAtual(unsigned us) {
-  // 1/8 de micropasso: 1600 pulsos por volta
   float pps = 1000000.0 / (2.0 * us);
-  return pps * 60.0 / PULSOS_POR_VOLTA;
+  return pps * 60.0 / PULSOS_VOLTA;
 }
 
 void setup() {
@@ -57,7 +69,7 @@ void setup() {
 
   Serial.println();
   Serial.println("=== modo rampa ===");
-  Serial.println("Assume 1/8 de micropasso: M0 e M1 no 3V3, M2 solto.");
+  Serial.printf("Assumindo %d pulsos por volta (half step: M0 no 3V3, M1 e M2 soltos).\n", PULSOS_VOLTA);
   Serial.printf("Acelera de %.1f RPM ate %.1f RPM em %u pulsos.\n",
                 rpmAtual(US_INICIAL), rpmAtual(US_FINAL), PASSOS_RAMPA);
   Serial.println("GPIO 14 em nivel alto para SLP e RST.");
@@ -80,7 +92,7 @@ void loop() {
   if (millis() - ultimoLog >= 2000) {
     ultimoLog = millis();
     Serial.printf("%lu pulsos | %.1f RPM | %.2f voltas | %s\n",
-                  passos, rpmAtual(us), passos / (float)PULSOS_POR_VOLTA,
+                  passos, rpmAtual(us), passos / (float)PULSOS_VOLTA,
                   passos < PASSOS_RAMPA ? "acelerando" : "cruzeiro");
   }
 }
