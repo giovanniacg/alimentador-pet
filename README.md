@@ -133,6 +133,11 @@ Etapas já feitas ficam esmaecidas, a atual em destaque, as futuras ocultas.
 3. **Trocar os pares de bobina.** `1A` faz par com `1B`, `2A` com `2B`. Ligar `1A` com `2A`
    faz o motor só vibrar. Ache os pares medindo resistência: mesmo par dá 2 a 3 Ω.
 4. **Capacitor invertido.** A faixa clara marca o negativo, que vai no GND. Invertido, estufa.
+5. **Terra separado.** O erro mais caro de todos. Existe **um único GND**: fonte, os dois
+   do driver, ESP32 e LM2596 todos no mesmo nó. Terras separados fazem a corrente do motor
+   voltar pelos fios de sinal e pelo cabo USB, queimando o chip conversor da placa — e de
+   quebra impedem o driver de enxergar os pulsos, então o motor nem gira. Custou duas
+   placas neste projeto (ver [`docs/pinagem.md`](docs/pinagem.md)).
 
 ### Ajuste de corrente do DRV8825
 

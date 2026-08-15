@@ -178,8 +178,42 @@ para a direita é **Emissor, Base, Coletor**. Atenção: o BC547, de corpo idên
 inverso (C-B-E). Trocar não queima na hora, mas não chaveia — e você perde a tarde
 depurando um firmware que está correto.
 
+## Terra comum: a regra que mais custa caro
+
+**Existe um único GND no circuito.** Não há "terra do 3,3 V" separado do "terra do 12 V".
+Todos os pontos de terra vão ao mesmo trilho, formando um nó elétrico só:
+
+- GND da fonte de 12 V
+- os **dois** GND do driver (o lógico, vizinho do `FLT`, e o de potência, vizinho do `UMOT`)
+- GND do ESP32
+- GND do LM2596, entrada e saída
+- GND de todo módulo que entrar depois
+
+Se a protoboard tem trilhos de terra em lados opostos, **ligue os dois com um jumper**.
+
+### Por que isso queima placa
+
+Tensão é sempre uma diferença em relação a um ponto de referência. Quando o ESP32 põe
+3,3 V no `STP`, isso significa "3,3 V acima do meu GND", e o driver lê esse fio comparando
+com **o GND dele**. Terras separados significam referências diferentes: o driver não
+enxerga o pulso, e o motor trava, treme ou anda errático.
+
+Pior que isso: a corrente do motor, acima de 1 A, precisa voltar à fonte. Se o terra de
+potência não fecha, ela volta pelo caminho que houver — **atravessando os fios de sinal,
+entrando no ESP32 e saindo pelo cabo USB**. Esses fios foram feitos para microampères. O
+que fica no caminho é o chip conversor USB, e ele morre.
+
+> **Incidente de 09-10/08/2026.** Duas placas ESP32 perdidas em dois dias, ambas com o
+> mesmo padrão: microcontrolador vivo, rodando firmware e piscando LED, e conversor USB
+> morto (CH9102 na primeira, CP2102 na segunda). A causa foi terra separado — o 3,3 V com
+> um terra próprio e o 5 V compartilhando terra com o 12 V. O mesmo defeito explica o
+> motor nunca ter girado direito: sem referência comum, o driver não interpretava os
+> pulsos de `STP`.
+
 ## Ordem de montagem segura
 
+1. **Terra comum antes de tudo.** Feche o nó de GND e confirme continuidade entre todos
+   os pontos de terra com o multímetro, antes de energizar qualquer coisa.
 1. Trilho de 12 V a partir do conector P4.
 2. Ajustar o LM2596 para 5,0 V **com nada conectado na saída**.
 3. Terra comum, conferido com o multímetro em continuidade.
