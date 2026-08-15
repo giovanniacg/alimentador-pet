@@ -26,16 +26,16 @@
 
 // MODO DE MICROPASSO EM USO. Trocar aqui quando trocar os jumpers:
 //   200  = full step   (M0, M1, M2 todos soltos)
-//   400  = half step   (M0 no 3V3; M1 e M2 soltos)     <- em uso
-//   1600 = 1/8         (M0 e M1 no 3V3; M2 solto)
+//   400  = half step   (M0 no 3V3; M1 e M2 soltos)
+//   1600 = 1/8         (M0 e M1 no 3V3; M2 solto)      <- em uso
 // Isto muda a velocidade real: com o mesmo delay, menos micropasso = mais RPM.
-static const int PULSOS_VOLTA = 400;
+static const int PULSOS_VOLTA = 1600;
 
 // Meio-periodo do pulso, em microssegundos. Delay MAIOR = mais devagar.
-// Calibrado para half step: arranque ~7 RPM, cruzeiro ~20 RPM.
-static const unsigned US_INICIAL = 10000;  // arranque bem lento
-static const unsigned US_FINAL   = 3750;   // cruzeiro
-static const unsigned PASSOS_RAMPA = 300;  // quantos pulsos para acelerar
+// Calibrado para 1/8 de micropasso: arranque ~6 RPM, cruzeiro ~30 RPM.
+static const unsigned US_INICIAL = 3000;   // arranque bem lento
+static const unsigned US_FINAL   = 625;    // cruzeiro
+static const unsigned PASSOS_RAMPA = 1600; // quantos pulsos para acelerar (1 volta)
 
 unsigned long passos = 0;
 unsigned long ultimoLog = 0;
@@ -69,7 +69,7 @@ void setup() {
 
   Serial.println();
   Serial.println("=== modo rampa ===");
-  Serial.printf("Assumindo %d pulsos por volta (half step: M0 no 3V3, M1 e M2 soltos).\n", PULSOS_VOLTA);
+  Serial.printf("Assumindo %d pulsos por volta (1/8: M0 e M1 no 3V3, M2 solto).\n", PULSOS_VOLTA);
   Serial.printf("Acelera de %.1f RPM ate %.1f RPM em %u pulsos.\n",
                 rpmAtual(US_INICIAL), rpmAtual(US_FINAL), PASSOS_RAMPA);
   Serial.println("GPIO 14 em nivel alto para SLP e RST.");
