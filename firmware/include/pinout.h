@@ -1,5 +1,13 @@
 // Alimentador Pet - mapa de pinos
 // Justificativa de cada escolha em docs/pinagem.md
+//
+// PLACA: ESP32 DevKit de 38 pinos. Os GPIOs usados aqui sao os mesmos de uma
+// placa de 30 pinos, mas a POSICAO FISICA deles na placa e outra - conferir o
+// mapa em hardware/montagem-protoboard.html antes de montar.
+//
+// NAO USAR: D0 D1 D2 D3 CMD CLK (GPIO 6-11) sao a memoria flash. Fio neles e a
+// placa nao le o proprio firmware. Nesta placa o pino de alimentacao externa
+// chama 5V (nao VIN) e fica colado no CMD.
 #pragma once
 
 // --- DRV8825 / NEMA 17 ---

@@ -17,9 +17,54 @@ Ligações completas entre o ESP32-WROOM-32 e os módulos, com a justificativa d
 | GPIO 33 | Botão frente | — | entrada | Alimentar / config WiFi. `INPUT_PULLUP` |
 | GPIO 32 | Botão traseiro | — | entrada | Tara da balança. `INPUT_PULLUP` |
 | GPIO 2 | LED onboard | — | saída | Já existe na placa |
-| VIN | LM2596 | saída | 5 V | Medir 5,0 V **antes** de conectar |
+| `5V` | LM2596 | saída | 5 V | Nesta placa o pino chama `5V`, não `VIN`. Medir 5,0 V **antes** de conectar |
 | 3V3 | HX711, DS3231 | VCC | 3,3 V | Nunca 5 V nesses módulos |
 | GND | todos | GND | terra | Terra comum obrigatório |
+
+## Placa de 38 pinos: os seis pinos proibidos
+
+A placa deste projeto é um **ESP32 DevKit de 38 pinos**. Diferente das de 30, ela expõe os
+pinos que o chip usa internamente para falar com a memória flash:
+
+```
+lado esquerdo (topo → base)        lado direito (topo → base)
+  3V3                                GND
+  EN                                 23
+  VP (36)                            22
+  VN (39)                            TX
+  34                                 RX
+  35                                 21
+  32                                 GND
+  33                                 19
+  25                                 18
+  26                                 5
+  27                                 17
+  14                                 16
+  12                                 4
+  GND                                0
+  13                                 2
+  D2   ← flash                       15
+  D3   ← flash                       D1   ← flash
+  CMD  ← flash                       D0   ← flash
+  5V                                 CLK  ← flash
+```
+
+**`D0`, `D1`, `D2`, `D3`, `CMD` e `CLK` são a memória flash** (GPIO 6 a 11). Qualquer fio
+neles impede o chip de ler o próprio firmware. O sintoma é característico: o `esptool`
+conversa com o ESP32 normalmente — lê MAC, cristal, features — mas reporta
+`Manufacturer: 00`, `Device: 0000`, `Detected flash size: Unknown`.
+
+> **A armadilha desta placa.** O pino de alimentação externa se chama **`5V`** (não `VIN`,
+> como nas de 30 pinos) e fica **colado no `CMD`**. Errar por um único furo ao ligar a
+> alimentação espeta no `CMD` e impede a gravação — sem nada parecer errado visualmente.
+> Aconteceu em 15/08/2026 e custou uma tarde.
+
+**Regra prática, contando a partir do conector USB:** do lado direito, os **três pinos mais
+próximos do USB** são flash. Do lado esquerdo, o mais próximo é o `5V` e os **três
+seguintes** são flash.
+
+Se a flash parar de responder, tire todos os fios e rode `esptool flash_id`: voltando a
+reportar fabricante e tamanho, era fio em pino proibido, e nada foi danificado.
 
 ## Por que esses pinos
 

@@ -70,9 +70,10 @@
 <div class="wrap">
   <header>
     <h1>Alimentador Pet: mapa da protoboard</h1>
-    <span class="sub">rev. B | espelho de <span class="mono">docs/pinagem.md</span> e <span class="mono">firmware/include/pinout.h</span></span>
+    <span class="sub">rev. C - placa de 38 pinos | espelho de <span class="mono">docs/pinagem.md</span> e <span class="mono">firmware/include/pinout.h</span></span>
   </header>
   <div class="rule">Regra dura de bancada: NUNCA conectar ou desconectar o motor com o DRV8825 energizado. Isso destrói o driver na hora. Desligue a fonte sempre.</div>
+  <div class="rule">Pinos em vermelho (D0 D1 D2 D3 CMD CLK) sao a memoria flash. Fio neles e a placa nao le o proprio firmware - foi o que travou a montagem em 15/08. O 5V fica colado no CMD: errar por um furo mata a gravacao.</div>
   <div class="rule">Antes de encostar o LM2596 em qualquer coisa: ligue a fonte, meça a saída e ajuste para 5,0 V. Ele sai de fábrica em tensão arbitrária.</div>
 
   <div class="chips" id="chipsModo" role="tablist" aria-label="Modo de alimentacao"></div>
@@ -113,20 +114,28 @@ const COR = {
   mVerm:  { c: '#ef4444', nome: 'bobina: fio VERMELHO do motor' },
 };
 
-// ---------- ESP32 DevKit 30p (USB pra BAIXO / antena pra cima) ----------
-// Confira SEMPRE a serigrafia da placa fisica antes de fiar.
-const ESP = { x: 560, y: 190, w: 170, h: 430 };
-const espL = ['EN','VP (36)','VN (39)','D34','D35','D32','D33','D25','D26','D27','D14','D12','D13','GND','VIN'];
-const espR = ['D23','D22','TX0','RX0','D21','D19','D18','D5','TX2 (17)','RX2 (16)','D4','D2','D15','GND','3V3'];
+// ---------- ESP32 DevKit 38 pinos (USB pra BAIXO / antena pra cima) ----------
+// Serigrafia real da placa. Os pinos D0, D1, D2, D3, CMD e CLK sao a memoria
+// FLASH interna (GPIO 6-11): fio neles impede o chip de ler o proprio firmware.
+// Placas de 30 pinos nao os expoem; esta expoe.
+const ESP = { x: 545, y: 168, w: 200, h: 500 };
+const espL = ['3V3','EN','VP 36','VN 39','34','35','32','33','25','26','27','14','12','GND','13','D2','D3','CMD','5V'];
+const espR = ['GND','23','22','TX','RX','21','GND','19','18','5','17','16','4','0','2','15','D1','D0','CLK'];
+const FLASH = ['D0','D1','D2','D3','CMD','CLK'];
 const espPin = {};
-espL.forEach((n, i) => {
-  let k = n.split(' ')[0]; if (espPin[k]) k += 'R';
-  espPin[k] = { x: ESP.x, y: ESP.y + 34 + i * 26.5, side: 'L', label: n };
-});
-espR.forEach((n, i) => {
-  let k = n.split(' ')[0]; if (espPin[k]) k += 'R';
-  espPin[k] = { x: ESP.x + ESP.w, y: ESP.y + 34 + i * 26.5, side: 'R', label: n };
-});
+function registra(lista, lado) {
+  lista.forEach((n, i) => {
+    let base = n.split(' ')[0], k = base, c = 2;
+    while (espPin[k]) k = base + c++;
+    espPin[k] = {
+      x: lado === 'L' ? ESP.x : ESP.x + ESP.w,
+      y: ESP.y + 30 + i * 24,
+      side: lado, label: n, flash: FLASH.includes(base)
+    };
+  });
+}
+registra(espL, 'L');
+registra(espR, 'R');
 
 // ---------- trilhos ----------
 const RAIL = {
@@ -195,8 +204,8 @@ const FIOS = [
   { de: 'LM2596:IN-', para: 'RAIL GND', cor: 'gnd', et: 1, nota: '' },
   { de: 'LM2596:OUT+', para: 'RAIL 5V', cor: 'v5', et: 1, nota: 'SO depois de medir 5,0 V no multimetro' },
   { de: 'LM2596:OUT-', para: 'RAIL GND', cor: 'gnd', et: 1, nota: '' },
-  { de: 'RAIL 5V', para: 'ESP:VIN', cor: 'v5', et: 1, modo: 'fonte', nota: 'o LM2596 alimenta a placa: so sem USB plugado' },
-  { de: 'RAIL 5V', para: 'ESP:VIN', cor: 'v5', et: 1, modo: 'usb', dash: true, nota: 'modo bancada: NAO conecte. O USB do Mac esta alimentando a placa' },
+  { de: 'RAIL 5V', para: 'ESP:5V', cor: 'v5', et: 1, modo: 'fonte', nota: 'o LM2596 alimenta a placa: so sem USB plugado' },
+  { de: 'RAIL 5V', para: 'ESP:5V', cor: 'v5', et: 1, modo: 'usb', dash: true, nota: 'modo bancada: NAO conecte. O USB do Mac esta alimentando a placa' },
   { de: 'ESP:GND', para: 'RAIL GND', cor: 'gnd', et: 1, nota: 'GND da placa no trilho comum' },
   { de: 'ESP:3V3', para: 'RAIL 3V3', cor: 'v33', et: 1, nota: 'o proprio ESP32 gera o 3V3 que alimenta HX711 e DS3231' },
   // etapa 2: motor
@@ -209,9 +218,9 @@ const FIOS = [
   { de: 'DRV8825:RST', para: 'RAIL 3V3', cor: 'v33', et: 2, nota: 'o par SLP+RST no 3V3. Sem isso o driver nunca acorda' },
   { de: 'DRV8825:M0', para: 'RAIL 3V3', cor: 'mot', et: 2, nota: 'micropasso 1/8: M0 alto' },
   { de: 'DRV8825:M1', para: 'RAIL 3V3', cor: 'mot', et: 2, nota: 'micropasso 1/8: M1 alto. M2 fica SOLTO (pull-down interno)' },
-  { de: 'DRV8825:STP', para: 'ESP:D26', cor: 'mot', et: 2, nota: 'STP = STEP. Cada pulso avanca um micropasso' },
-  { de: 'DRV8825:DIR', para: 'ESP:D27', cor: 'mot', et: 2, nota: 'sentido de giro; inverta no firmware se sair ao contrario' },
-  { de: 'DRV8825:EN', para: 'ESP:D25', cor: 'mot', et: 2, nota: 'EN = ENABLE, ativo em nivel BAIXO. Alto em repouso = motor parado' },
+  { de: 'DRV8825:STP', para: 'ESP:26', cor: 'mot', et: 2, nota: 'STP = STEP. Cada pulso avanca um micropasso' },
+  { de: 'DRV8825:DIR', para: 'ESP:27', cor: 'mot', et: 2, nota: 'sentido de giro; inverta no firmware se sair ao contrario' },
+  { de: 'DRV8825:EN', para: 'ESP:25', cor: 'mot', et: 2, nota: 'EN = ENABLE, ativo em nivel BAIXO. Alto em repouso = motor parado' },
   { de: 'DRV8825:1A', para: 'NEMA 17:1A verde', cor: 'mVerde', et: 2, nota: 'bobina 1: fio VERDE. Par com o preto (2-3 ohm entre eles)' },
   { de: 'DRV8825:1B', para: 'NEMA 17:1B preto', cor: 'mPreto', et: 2, nota: 'bobina 1: fio PRETO' },
   { de: 'DRV8825:2A', para: 'NEMA 17:2A azul', cor: 'mAzul', et: 2, nota: 'bobina 2: fio AZUL. Par com o vermelho, NUNCA com o verde' },
@@ -219,22 +228,22 @@ const FIOS = [
   // etapa 3: balanca
   { de: 'HX711:VCC', para: 'RAIL 3V3', cor: 'v33', et: 3, nota: '3,3 V. Com 5 V a saida de dados sai em 5 V e agride o GPIO' },
   { de: 'HX711:GND', para: 'RAIL GND', cor: 'gnd', et: 3, nota: '' },
-  { de: 'HX711:DT', para: 'ESP:RX2', cor: 'bal', et: 3, nota: 'dados da balanca (GPIO 16)' },
-  { de: 'HX711:SCK', para: 'ESP:D4', cor: 'bal', et: 3, nota: 'clock da balanca' },
+  { de: 'HX711:DT', para: 'ESP:16', cor: 'bal', et: 3, nota: 'dados da balanca (GPIO 16)' },
+  { de: 'HX711:SCK', para: 'ESP:4', cor: 'bal', et: 3, nota: 'clock da balanca' },
   // etapa 4: relogio
   { de: 'DS3231:VCC', para: 'RAIL 3V3', cor: 'v33', et: 4, nota: '' },
   { de: 'DS3231:GND', para: 'RAIL GND', cor: 'gnd', et: 4, nota: '' },
-  { de: 'DS3231:SDA', para: 'ESP:D21', cor: 'i2c', et: 4, nota: 'I2C SDA, endereco 0x68' },
-  { de: 'DS3231:SCL', para: 'ESP:D22', cor: 'i2c', et: 4, nota: 'I2C SCL' },
+  { de: 'DS3231:SDA', para: 'ESP:21', cor: 'i2c', et: 4, nota: 'I2C SDA, endereco 0x68' },
+  { de: 'DS3231:SCL', para: 'ESP:22', cor: 'i2c', et: 4, nota: 'I2C SCL' },
   // etapa 5: buzzer
   { de: 'BUZZER 12V:+', para: 'RAIL 12V', cor: 'v12', et: 5, nota: 'positivo do buzzer no trilho de 12V' },
   { de: 'BUZZER 12V:-', para: 'BC337:C', cor: 'buz', et: 5, nota: 'negativo do buzzer no coletor. O 1N4007 vai em paralelo com o buzzer' },
-  { de: 'BC337:B', para: 'ESP:TX2', cor: 'buz', et: 5, nota: 'base pelo GPIO 17, SEMPRE com 1k em serie', resistor: '1k' },
+  { de: 'BC337:B', para: 'ESP:17', cor: 'buz', et: 5, nota: 'base pelo GPIO 17, SEMPRE com 1k em serie', resistor: '1k' },
   { de: 'BC337:E', para: 'RAIL GND', cor: 'gnd', et: 5, nota: 'emissor no terra comum' },
   // etapa 6: botoes
-  { de: 'BOTAO FEED:t1', para: 'ESP:D33', cor: 'bot', et: 6, nota: 'toque alimenta; segurar 5 s abre a configuracao de WiFi' },
+  { de: 'BOTAO FEED:t1', para: 'ESP:33', cor: 'bot', et: 6, nota: 'toque alimenta; segurar 5 s abre a configuracao de WiFi' },
   { de: 'BOTAO FEED:t2', para: 'RAIL GND', cor: 'gnd', et: 6, nota: 'pull-up interno no firmware, sem resistor externo' },
-  { de: 'BOTAO TARA:t1', para: 'ESP:D32', cor: 'bot', et: 6, nota: 'zera a balanca com o prato vazio' },
+  { de: 'BOTAO TARA:t1', para: 'ESP:32', cor: 'bot', et: 6, nota: 'zera a balanca com o prato vazio' },
   { de: 'BOTAO TARA:t2', para: 'RAIL GND', cor: 'gnd', et: 6, nota: 'monte longe do outro botao: apertar por engano estraga a calibracao' },
 ];
 
@@ -278,12 +287,13 @@ function desenhaBase() {
   el('rect', { x: ESP.x, y: ESP.y, width: ESP.w, height: ESP.h, rx: 12, fill: 'var(--esp-bg)', stroke: 'var(--esp-edge)', 'stroke-width': 2 });
   el('rect', { x: ESP.x + 55, y: ESP.y + 8, width: 60, height: 44, rx: 4, fill: 'var(--esp-edge)' });
   const t = el('text', { x: ESP.x + ESP.w / 2, y: ESP.y + ESP.h / 2, fill: 'var(--pin-dot)', 'font-size': 15, 'font-weight': 700, 'text-anchor': 'middle', transform: `rotate(-90 ${ESP.x + ESP.w / 2} ${ESP.y + ESP.h / 2})` });
-  t.textContent = 'ESP32 DevKit 30p (USB embaixo)';
+  t.textContent = 'ESP32 DevKit 38 pinos (USB embaixo)';
   el('text', { x: ESP.x + ESP.w / 2, y: ESP.y + ESP.h + 26, fill: 'var(--muted)', 'font-size': 12, 'text-anchor': 'middle', 'font-family': 'ui-monospace, Menlo, monospace' }).textContent = 'USB';
   for (const pin in espPin) {
     const p = espPin[pin];
-    el('circle', { cx: p.x, cy: p.y, r: 3.4, fill: 'var(--pin-dot)' });
-    el('text', { x: p.side === 'L' ? p.x + 10 : p.x - 10, y: p.y + 4, fill: 'var(--pin-dot)', 'font-size': 11.5, 'font-family': 'ui-monospace, Menlo, monospace', 'text-anchor': p.side === 'L' ? 'start' : 'end' }).textContent = p.label;
+    const cor = p.flash ? '#e5484d' : 'var(--pin-dot)';
+    el('circle', { cx: p.x, cy: p.y, r: 3.4, fill: cor });
+    el('text', { x: p.side === 'L' ? p.x + 10 : p.x - 10, y: p.y + 4, fill: cor, 'font-size': 11, 'font-family': 'ui-monospace, Menlo, monospace', 'text-anchor': p.side === 'L' ? 'start' : 'end', 'font-weight': p.flash ? 700 : 400 }).textContent = p.label + (p.flash ? '  \u00d7' : '');
   }
   for (const nome in MODS) {
     const m = MODS[nome];
