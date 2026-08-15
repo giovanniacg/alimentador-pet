@@ -3,6 +3,29 @@
 Cada fase termina num teste que passa ou não passa. Nenhuma fase começa antes da anterior
 fechar.
 
+## Estado do firmware
+
+O firmware final vive em `firmware/src/main.cpp` mais os módulos de
+`firmware/src/final/`. Grava com:
+
+```
+pio run -e final -t upload
+pio device monitor -b 115200
+```
+
+Ele cobre **em código** as fases 04, 05 e 06 inteiras. Nenhuma delas está fechada:
+fechar exige o teste de bancada descrito em cada uma, com ração e motor de verdade.
+
+| Fase | Coberto pelo `env:final` | Falta |
+|---|---|---|
+| 04 Dosagem | `final/dosagem.cpp`: incrementos de 1/4 de volta, pesagem entre eles, recuo de meia volta ao travar, 3 recuos e desiste, timeout de 60 s, buzzer no erro | medir gramas por volta e conferir 80 g pedidos = 80 g entregues |
+| 05 Autonomia | `final/agenda.cpp` (8 refeições na NVS), `final/relogio.cpp` (DS3231 + NTP com fuso fixo `<-03>3`), botões, buzzer, marca a refeição na NVS antes de dosar | teste de crueldade: cortar a tomada no meio do dia |
+| 06 Broker | `final/rede.cpp`: esp-mqtt sobre `wss://host:443`, keepalive 45 s, LWT retained, reconexão automática, CA bundle do próprio core | subir o Mosquitto atrás do Traefik e alimentar pelo 4G |
+
+Pendências conhecidas: o fator de calibração da balança precisa ser medido na peça
+real (`c <gramas>` na serial) e o `PULSOS_INCREMENTO` da dosagem pode querer ajuste
+depois que a rosca mostrar quantos gramas ela entrega por volta.
+
 ---
 
 ## Fase 00 — Bancada
