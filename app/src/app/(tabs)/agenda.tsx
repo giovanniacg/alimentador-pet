@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
@@ -28,7 +28,7 @@ import { sortMeals } from '@/feeder/parse';
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { Dose, FeedMode, Meal } from '@/feeder/types';
 import { ALL_DAYS, sameDays } from '@/feeder/weekdays';
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type Editing = {
   /** null quando e uma refeicao nova. */
@@ -276,7 +276,9 @@ function MealRow({
   return (
     <View style={styles.row}>
       <View style={styles.rowInfo}>
-        <Text style={styles.rowClock}>{formatClock(meal)}</Text>
+        <Text style={styles.rowClock} maxFontSizeMultiplier={fontCap.display}>
+          {formatClock(meal)}
+        </Text>
         <Text style={styles.rowDose}>{describeDose(dose)}</Text>
         <Text style={styles.rowDays}>{formatDays(meal.days)}</Text>
       </View>
@@ -316,7 +318,9 @@ function RowButton({
         styles.rowButton,
         { borderColor: tone, backgroundColor: pressed ? colors.surface : colors.white },
       ]}>
-      <Text style={[styles.rowButtonText, { color: tone }]}>{label}</Text>
+      <Text style={[styles.rowButtonText, { color: tone }]} maxFontSizeMultiplier={fontCap.control}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -353,68 +357,79 @@ function MealEditor({
             {editing.index === null ? 'Nova refeição' : 'Mudar refeição'}
           </Text>
 
-          <Stepper
-            label="Hora"
-            value={meal.h}
-            display={`${meal.h.toString().padStart(2, '0')} h`}
-            min={0}
-            max={23}
-            step={1}
-            wrap
-            unitLabel="hora"
-            onChange={(h) => {
-              onChange({ ...editing, meal: { ...meal, h } });
-            }}
-          />
+          {/* O conteudo rola; os botoes ficam fixos no rodape do cartao. Sem
+              isso, com fonte grande o "Guardar na lista" cai para fora da tela
+              e a refeicao nao tem como ser salva. */}
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled">
+            <Stepper
+              label="Hora"
+              value={meal.h}
+              display={`${meal.h.toString().padStart(2, '0')} h`}
+              min={0}
+              max={23}
+              step={1}
+              wrap
+              unitLabel="hora"
+              onChange={(h) => {
+                onChange({ ...editing, meal: { ...meal, h } });
+              }}
+            />
 
-          <Stepper
-            label="Minuto"
-            value={meal.m}
-            display={`${meal.m.toString().padStart(2, '0')} min`}
-            min={0}
-            max={55}
-            step={5}
-            wrap
-            unitLabel="minuto"
-            onChange={(m) => {
-              onChange({ ...editing, meal: { ...meal, m } });
-            }}
-          />
+            <Stepper
+              label="Minuto"
+              value={meal.m}
+              display={`${meal.m.toString().padStart(2, '0')} min`}
+              min={0}
+              max={55}
+              step={5}
+              wrap
+              unitLabel="minuto"
+              onChange={(m) => {
+                onChange({ ...editing, meal: { ...meal, m } });
+              }}
+            />
 
-          <Stepper
-            label={doseFieldLabel(mode)}
-            value={doseAmount(dose)}
-            display={formatDose(dose)}
-            min={limits.min}
-            max={limits.max}
-            step={limits.step}
-            unitLabel={doseUnitName(mode)}
-            onChange={(amount) => {
-              onChange({ ...editing, meal: { ...meal, dose: makeDose(unit, amount) } });
-            }}
-          />
+            <Stepper
+              label={doseFieldLabel(mode)}
+              value={doseAmount(dose)}
+              display={formatDose(dose)}
+              min={limits.min}
+              max={limits.max}
+              step={limits.step}
+              unitLabel={doseUnitName(mode)}
+              onChange={(amount) => {
+                onChange({ ...editing, meal: { ...meal, dose: makeDose(unit, amount) } });
+              }}
+            />
 
-          <DayChips
-            label="Dias da semana"
-            days={meal.days}
-            onChange={(days) => {
-              onChange({ ...editing, meal: { ...meal, days } });
-            }}
-          />
+            <DayChips
+              label="Dias da semana"
+              days={meal.days}
+              onChange={(days) => {
+                onChange({ ...editing, meal: { ...meal, days } });
+              }}
+            />
 
-          {noDays ? (
-            <Text style={styles.emptyDays} accessibilityRole="alert">
-              Escolha pelo menos um dia da semana. Sem nenhum dia, essa refeição nunca aconteceria.
-            </Text>
-          ) : null}
+            {noDays ? (
+              <Text style={styles.emptyDays} accessibilityRole="alert">
+                Escolha pelo menos um dia da semana. Sem nenhum dia, essa refeição nunca
+                aconteceria.
+              </Text>
+            ) : null}
+          </ScrollView>
 
-          <BigButton
-            label="Guardar na lista"
-            onPress={onConfirm}
-            disabled={noDays}
-            disabledReason="Escolha pelo menos um dia da semana."
-          />
-          <BigButton label="Cancelar" variant="secondary" onPress={onCancel} />
+          <View style={styles.modalFooter}>
+            <BigButton
+              label="Guardar na lista"
+              onPress={onConfirm}
+              disabled={noDays}
+              disabledReason="Escolha pelo menos um dia da semana."
+            />
+            <BigButton label="Cancelar" variant="secondary" onPress={onCancel} />
+          </View>
         </View>
       </View>
     </Modal>
@@ -471,8 +486,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   rowButton: {
-    minHeight: MIN_TOUCH,
-    minWidth: 88,
+    minHeight: control.lg,
+    // 96 e nao 88: o rotulo cresce com o zoom do sistema e nao pode truncar.
+    minWidth: 96,
     borderWidth: 2,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -494,6 +510,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
+    maxHeight: '90%',
+  },
+  modalScroll: {
+    flexShrink: 1,
+  },
+  modalScrollContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  modalFooter: {
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
   },
   modalTitle: {
     fontSize: fontSizes.large,

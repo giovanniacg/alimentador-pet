@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type ToggleProps = {
   readonly label: string;
@@ -45,8 +45,10 @@ export function Toggle({
             backgroundColor: pressed ? colors.surface : colors.white,
           },
         ]}>
-        <Text style={[styles.mark, { color: tone }]}>{value ? '✓' : '✕'}</Text>
-        <Text style={[styles.text, { color: tone }]} maxFontSizeMultiplier={1.4}>
+        <Text style={[styles.mark, { color: tone }]} maxFontSizeMultiplier={fontCap.control}>
+          {value ? '✓' : '✕'}
+        </Text>
+        <Text style={[styles.text, { color: tone }]} maxFontSizeMultiplier={fontCap.control}>
           {value ? onText : offText}
         </Text>
       </Pressable>
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    minHeight: MIN_TOUCH,
+    minHeight: control.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

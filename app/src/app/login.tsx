@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
-import { Screen } from '@/components/screen';
+import { Screen, useRevealAboveKeyboard } from '@/components/screen';
 import { DEFAULT_BROKER_HOST, DEFAULT_USERNAME } from '@/config';
 import { useFeeder } from '@/feeder/provider';
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontSizes, radius, spacing } from '@/theme';
 
 export default function LoginScreen() {
   const { signIn, lastError } = useFeeder();
@@ -39,65 +39,61 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen title="Alimentador do pet">
-        <Text style={styles.intro}>
-          Preencha os dados uma vez. Depois disso o aplicativo entra sozinho.
-        </Text>
+    <Screen title="Alimentador do pet" avoidKeyboard>
+      <Text style={styles.intro}>
+        Preencha os dados uma vez. Depois disso o aplicativo entra sozinho.
+      </Text>
 
-        {errorMessage === null ? null : (
-          <View style={styles.errorBox} accessibilityRole="alert">
-            <Text style={styles.errorSymbol}>!</Text>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        )}
+      {errorMessage === null ? null : (
+        <View style={styles.errorBox} accessibilityRole="alert">
+          <Text style={styles.errorSymbol}>!</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      )}
 
-        <Field
-          label="Endereço do servidor"
-          hint="Foi anotado junto com a senha. Exemplo: casa.meusite.com.br"
-          value={host}
-          onChangeText={setHost}
-          autoCapitalize="none"
-          keyboardType="url"
-          textContentType="URL"
-        />
+      <Field
+        label="Endereço do servidor"
+        hint="Foi anotado junto com a senha. Exemplo: casa.meusite.com.br"
+        value={host}
+        onChangeText={setHost}
+        autoCapitalize="none"
+        keyboardType="url"
+        textContentType="URL"
+      />
 
-        <Field
-          label="Usuário"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          textContentType="username"
-        />
+      <Field
+        label="Usuário"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+        textContentType="username"
+      />
 
-        <Field
-          label="Senha"
-          value={password}
-          onChangeText={setPassword}
-          autoCapitalize="none"
-          secureTextEntry={!showPassword}
-          textContentType="password"
-          onSubmitEditing={handleSubmit}
-        />
+      <Field
+        label="Senha"
+        value={password}
+        onChangeText={setPassword}
+        autoCapitalize="none"
+        secureTextEntry={!showPassword}
+        textContentType="password"
+        onSubmitEditing={handleSubmit}
+      />
 
-        <BigButton
-          label={showPassword ? 'Esconder a senha' : 'Mostrar a senha'}
-          variant="secondary"
-          onPress={() => {
-            setShowPassword((current) => !current);
-          }}
-        />
+      <BigButton
+        label={showPassword ? 'Esconder a senha' : 'Mostrar a senha'}
+        variant="secondary"
+        onPress={() => {
+          setShowPassword((current) => !current);
+        }}
+      />
 
-        <BigButton
-          label={saving ? 'Entrando...' : 'Entrar'}
-          onPress={handleSubmit}
-          disabled={saving}
-          disabledReason={saving ? 'Só um instante.' : undefined}
-        />
-      </Screen>
-    </KeyboardAvoidingView>
+      <BigButton
+        label={saving ? 'Entrando...' : 'Entrar'}
+        onPress={handleSubmit}
+        disabled={saving}
+        disabledReason={saving ? 'Só um instante.' : undefined}
+      />
+    </Screen>
   );
 }
 
@@ -124,12 +120,18 @@ function Field({
   textContentType,
   onSubmitEditing,
 }: FieldProps) {
+  const reveal = useRevealAboveKeyboard();
+  const blockRef = useRef<View>(null);
+
   return (
-    <View style={styles.field}>
+    <View style={styles.field} ref={blockRef}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {hint === undefined ? null : <Text style={styles.fieldHint}>{hint}</Text>}
       <TextInput
         style={styles.input}
+        onFocus={() => {
+          reveal(blockRef.current);
+        }}
         value={value}
         onChangeText={onChangeText}
         accessibilityLabel={label}
@@ -140,17 +142,12 @@ function Field({
         textContentType={textContentType}
         onSubmitEditing={onSubmitEditing}
         placeholderTextColor={colors.muted}
-        maxFontSizeMultiplier={1.4}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   intro: {
     fontSize: fontSizes.body,
     color: colors.text,
@@ -168,7 +165,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   input: {
-    minHeight: MIN_TOUCH,
+    minHeight: control.lg,
     borderWidth: 2,
     borderColor: colors.border,
     borderRadius: radius.md,

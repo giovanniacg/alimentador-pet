@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
@@ -29,7 +29,7 @@ import {
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { Dose } from '@/feeder/types';
 import { useNow } from '@/hooks/use-now';
-import { colors, fontSizes, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, spacing } from '@/theme';
 
 export default function HomeScreen() {
   const { status, state, config, mode, gramsPerSecond, signOut, feedNow, skipNextMeal, soundSiren } =
@@ -177,24 +177,20 @@ export default function HomeScreen() {
             setChosen(makeDose(unit, next));
           }}
         />
-        <View style={styles.spacer} />
+        {/* Escolher a quantidade e servir sao passos distintos: 24 dp entre
+            eles, nao os 4 dp de antes. O destaque do botao vem da altura, do
+            fundo solido, da largura e do icone, nunca do tamanho da letra. */}
         <BigButton
-          label="ALIMENTAR AGORA"
-          huge
+          label="Alimentar agora"
+          emphasis
+          icon="restaurant"
+          style={styles.primaryAction}
           hint={`Serve ${describeDose(dose)} na hora`}
           onPress={confirmFeed}
           disabled={!online || sending}
           disabledReason={sending ? 'Enviando...' : blockedReason}
         />
       </Card>
-
-      <BigButton
-        label="Pular próxima refeição"
-        variant="danger"
-        onPress={confirmSkip}
-        disabled={!online || sending}
-        disabledReason={sending ? 'Enviando...' : blockedReason}
-      />
 
       <BigButton
         label="Tocar sirene"
@@ -206,7 +202,27 @@ export default function HomeScreen() {
         disabledReason={sending ? 'Enviando...' : blockedReason}
       />
 
-      <BigButton label="Sair" variant="secondary" onPress={confirmSignOut} />
+      {/* Acao de excecao: fica longe do fluxo comum, para nao ser tocada sem
+          querer por quem so queria alimentar. */}
+      <BigButton
+        label="Pular próxima refeição"
+        variant="danger"
+        style={styles.exceptionAction}
+        onPress={confirmSkip}
+        disabled={!online || sending}
+        disabledReason={sending ? 'Enviando...' : blockedReason}
+      />
+
+      {/* Sair nao e botao: e saida de rotina, com o peso de um link. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Sair do aplicativo"
+        onPress={confirmSignOut}
+        style={styles.signOut}>
+        <Text style={styles.signOutLabel} maxFontSizeMultiplier={fontCap.control}>
+          Sair do aplicativo
+        </Text>
+      </Pressable>
     </Screen>
   );
 }
@@ -226,7 +242,24 @@ const styles = StyleSheet.create({
     color: colors.amber,
     fontWeight: '700',
   },
-  spacer: {
-    height: spacing.xs,
+  primaryAction: {
+    marginTop: spacing.lg,
+  },
+  exceptionAction: {
+    marginTop: spacing.lg,
+  },
+  signOut: {
+    minHeight: control.sm,
+    marginTop: spacing.xl,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signOutLabel: {
+    fontSize: fontSizes.small,
+    fontWeight: '600',
+    color: colors.blue,
   },
 });

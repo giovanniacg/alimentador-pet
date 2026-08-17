@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { dayLetter, dayName } from '@/feeder/format';
 import type { Weekday } from '@/feeder/types';
 import { ALL_DAYS, hasDay, toggleDay } from '@/feeder/weekdays';
-import { MIN_CHIP_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type DayChipsProps = {
   readonly label: string;
@@ -16,8 +16,13 @@ type DayChipsProps = {
  *
  * O dia marcado muda de preenchimento E ganha um "✓", porque estado nunca pode
  * depender so de cor (SC 1.4.1). Cada chip e um `checkbox` com estado, e o nome
- * acessivel usa o dia por extenso, nao a letra solta (SC 4.1.2). Os chips
- * quebram de linha em vez de encolher: 44 dp e o piso do alvo.
+ * acessivel usa o dia por extenso, nao a letra solta (SC 4.1.2).
+ *
+ * Os sete chips ficam numa LINHA SO, dividindo a largura em partes iguais
+ * (`flexBasis: 0`). Nao ha `flexWrap`: era ele, somado a `flexGrow`, que
+ * jogava o sabado sozinho para a segunda linha e o esticava na largura toda.
+ * Quem garante o alvo de toque aqui e a ALTURA (56 dp), nao a largura: mesmo
+ * numa tela de 320 dp o chip sai com ~33x56, bem acima dos 24x24 do SC 2.5.8.
  */
 export function DayChips({ label, days, onChange }: DayChipsProps) {
   return (
@@ -49,12 +54,12 @@ export function DayChips({ label, days, onChange }: DayChipsProps) {
               ]}>
               <Text
                 style={[styles.letter, { color: selected ? colors.white : colors.text }]}
-                maxFontSizeMultiplier={1.3}>
+                maxFontSizeMultiplier={fontCap.control}>
                 {dayLetter(day)}
               </Text>
               <Text
                 style={[styles.mark, { color: selected ? colors.white : colors.muted }]}
-                maxFontSizeMultiplier={1.3}>
+                maxFontSizeMultiplier={fontCap.control}>
                 {selected ? '✓' : '−'}
               </Text>
             </Pressable>
@@ -76,19 +81,23 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    // Sem `flexWrap` de proposito: a semana e lida como uma regua continua.
     gap: spacing.xs,
   },
   chip: {
-    minWidth: MIN_CHIP_TOUCH,
-    minHeight: MIN_CHIP_TOUCH,
+    // `flexBasis: 0` ignora o conteudo e divide a linha em sete partes iguais.
+    flexBasis: 0,
     flexGrow: 1,
-    flexBasis: MIN_CHIP_TOUCH,
+    flexShrink: 1,
+    minWidth: 0,
+    minHeight: control.lg,
     borderWidth: 2,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 0,
+    paddingVertical: spacing.sm,
+    gap: 2,
   },
   letter: {
     fontSize: fontSizes.body,

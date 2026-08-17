@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, iconSize, radius, spacing } from '@/theme';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -16,7 +16,11 @@ type BigButtonProps = {
   readonly disabled?: boolean;
   /** Motivo do bloqueio, lido por leitor de tela e mostrado em texto. */
   readonly disabledReason?: string;
-  readonly huge?: boolean;
+  /**
+   * Botao primario da tela: 64 dp em vez de 56. O destaque vem da soma de
+   * altura, fundo solido, largura total e icone, nunca de tamanho de fonte.
+   */
+  readonly emphasis?: boolean;
   /** Icone opcional ao lado do rotulo. Decorativo: o texto e que nomeia o botao. */
   readonly icon?: IconName;
   readonly style?: ViewStyle;
@@ -35,7 +39,7 @@ export function BigButton({
   hint,
   disabled = false,
   disabledReason,
-  huge = false,
+  emphasis = false,
   icon,
   style,
 }: BigButtonProps) {
@@ -53,7 +57,7 @@ export function BigButton({
         onPress={onPress}
         style={({ pressed }) => [
           styles.button,
-          huge ? styles.huge : null,
+          emphasis ? styles.emphasis : null,
           {
             backgroundColor: pressed ? palette.pressed : palette.background,
             borderColor: palette.border,
@@ -62,11 +66,13 @@ export function BigButton({
         ]}>
         <View style={styles.labelRow}>
           {icon === undefined ? null : (
-            <MaterialIcons name={icon} size={28} color={palette.text} />
+            <MaterialIcons name={icon} size={iconSize.lg} color={palette.text} />
           )}
+          {/* Rotulo de controle: cap 1.3 e quebra em duas linhas, nunca trunca
+              (sem `numberOfLines`). A caixa cresce junto pelo `minHeight`. */}
           <Text
-            style={[styles.label, huge ? styles.hugeLabel : null, { color: palette.text }]}
-            maxFontSizeMultiplier={1.4}>
+            style={[styles.label, { color: palette.text }]}
+            maxFontSizeMultiplier={fontCap.control}>
             {label}
           </Text>
         </View>
@@ -124,7 +130,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   button: {
-    minHeight: MIN_TOUCH + 12,
+    minHeight: control.lg,
     borderRadius: radius.lg,
     borderWidth: 2,
     paddingHorizontal: spacing.md,
@@ -133,8 +139,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
   },
-  huge: {
-    minHeight: 120,
+  emphasis: {
+    minHeight: control.xl,
   },
   labelRow: {
     flexDirection: 'row',
@@ -147,9 +153,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.large,
     fontWeight: '700',
     textAlign: 'center',
-  },
-  hugeLabel: {
-    fontSize: fontSizes.huge,
   },
   hint: {
     fontSize: fontSizes.small,

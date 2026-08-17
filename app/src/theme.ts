@@ -43,6 +43,9 @@ export const fontSizes = {
   body: 20,
   large: 24,
   title: 30,
+  /** Glifo de status. Um uso por tela, nunca rotulo de controle. */
+  display: 40,
+  /** @deprecated Use `fontSizes.display`, e so em glifo de status. */
   huge: 40,
 } as const;
 
@@ -52,14 +55,53 @@ export const radius = {
 } as const;
 
 /**
- * Altura minima de qualquer alvo tocavel.
- * WCAG 2.2 SC 2.5.8 pede 24x24; aqui vai bem acima porque o publico e 50+.
+ * Alturas de controle, em dp FIXO. Nunca multiplicar por fontScale: o texto
+ * dentro cresce e o controle cresce junto via `minHeight`.
+ *
+ * A regra que atravessa o app: fonte escala com o sistema, caixa nao escala,
+ * cresce. Altura de controle e sempre `minHeight`, nunca `height`.
  */
-export const MIN_TOUCH = 56;
+export const control = {
+  /** Chip de dia, controle em fileira. */
+  sm: 44,
+  /** Alvo confortavel padrao. */
+  md: 48,
+  /** Botao padrao, input, linha tocavel. */
+  lg: 56,
+  /** Botao primario de destaque. TETO: nao existe controle maior. */
+  xl: 64,
+} as const;
+
+export const iconSize = { sm: 20, md: 24, lg: 28 } as const;
 
 /**
- * Alvo minimo dos controles que aparecem em fileira (os chips de dia da
- * semana). Continua bem acima dos 24x24 do SC 2.5.8; sao sete numa linha, e
- * abaixo disso o chip nao caberia sem quebrar em telas estreitas.
+ * Teto do multiplicador de fonte, por papel do texto.
+ *
+ * Texto de CONTEUDO (paragrafo, descricao, erro, item de lista) nao entra
+ * aqui: escala livre ate o maximo do sistema, como pede WCAG 2.2 SC 1.4.4.
+ * Capar so vale dentro de controle, onde a caixa tem geometria propria, e o
+ * baseline do app ja parte de 20 dp de corpo.
  */
-export const MIN_CHIP_TOUCH = 44;
+export const fontCap = {
+  /** Texto DENTRO de botao, chip, aba. */
+  control: 1.3,
+  /** Numero grande do stepper, simbolo de status. */
+  display: 1.2,
+  /** Titulo de tela. */
+  title: 1.6,
+  /** Rotulo de aba: o alvo e a celula inteira, o texto nao pode truncar. */
+  tab: 1.2,
+} as const;
+
+/**
+ * @deprecated Use `control.lg`. Mantido como alias para nao quebrar
+ * consumidores; sai na versao seguinte.
+ */
+export const MIN_TOUCH = control.lg;
+
+/**
+ * @deprecated Nao existe mais largura minima de chip: os sete dias dividem uma
+ * linha so (`flexBasis: 0`) e quem garante o alvo e a ALTURA (`control.lg`).
+ * Use `control.sm` quando precisar de um controle baixo em fileira.
+ */
+export const MIN_CHIP_TOUCH = control.sm;

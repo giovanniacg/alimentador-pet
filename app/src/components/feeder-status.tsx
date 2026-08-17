@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { connectionLabel } from '@/feeder/format';
 import type { ConnectionStatus, FeederState } from '@/feeder/types';
-import { colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type Tone = 'ok' | 'bad' | 'wait';
 
@@ -77,11 +77,14 @@ export function FeederStatusPanel({
       accessible
       accessibilityRole="summary"
       accessibilityLabel={`${view.headline}. ${view.detail}`}>
-      <Text style={[styles.symbol, { color: palette.color }]}>{view.symbol}</Text>
+      <Text
+        style={[styles.symbol, { color: palette.color }]}
+        maxFontSizeMultiplier={fontCap.display}>
+        {view.symbol}
+      </Text>
       <View style={styles.texts}>
-        <Text style={[styles.headline, { color: palette.color }]} maxFontSizeMultiplier={1.4}>
-          {view.headline}
-        </Text>
+        {/* Conteudo de leitura: escala livre, sem cap (WCAG 2.2 SC 1.4.4). */}
+        <Text style={[styles.headline, { color: palette.color }]}>{view.headline}</Text>
         <Text style={styles.detail}>{view.detail}</Text>
       </View>
     </View>
@@ -113,7 +116,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   symbol: {
-    fontSize: fontSizes.huge,
+    fontSize: fontSizes.display,
     fontWeight: '700',
   },
   texts: {

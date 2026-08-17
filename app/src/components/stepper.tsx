@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type StepperProps = {
   readonly label: string;
@@ -66,7 +66,7 @@ export function Stepper({
           style={styles.value}
           accessibilityLiveRegion="polite"
           accessibilityLabel={`${label}: ${display}`}
-          maxFontSizeMultiplier={1.4}>
+          maxFontSizeMultiplier={fontCap.display}>
           {display}
         </Text>
         <StepButton
@@ -109,7 +109,9 @@ function StepButton({
           borderColor: disabled ? colors.disabled : colors.blue,
         },
       ]}>
-      <Text style={[styles.stepSymbol, { color: disabled ? colors.disabled : colors.blue }]}>
+      <Text
+        style={[styles.stepSymbol, { color: disabled ? colors.disabled : colors.blue }]}
+        maxFontSizeMultiplier={fontCap.display}>
         {symbol}
       </Text>
     </Pressable>
@@ -132,8 +134,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   stepButton: {
-    width: MIN_TOUCH + 8,
-    height: MIN_TOUCH + 8,
+    width: control.lg,
+    height: control.lg,
     borderRadius: radius.md,
     borderWidth: 2,
     alignItems: 'center',

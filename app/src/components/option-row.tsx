@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
 
 type OptionRowProps = {
   readonly title: string;
@@ -33,13 +33,15 @@ export function OptionRow({ title, description, selected, onPress }: OptionRowPr
           backgroundColor: pressed ? colors.blueSurface : colors.white,
         },
       ]}>
-      <Text style={[styles.mark, { color: selected ? colors.blue : colors.muted }]}>
+      <Text
+        style={[styles.mark, { color: selected ? colors.blue : colors.muted }]}
+        maxFontSizeMultiplier={fontCap.display}>
         {selected ? '✓' : '○'}
       </Text>
       <View style={styles.texts}>
         <Text
           style={[styles.title, { color: selected ? colors.blue : colors.text }]}
-          maxFontSizeMultiplier={1.4}>
+          maxFontSizeMultiplier={fontCap.control}>
           {title}
         </Text>
         <Text style={styles.description}>{description}</Text>
@@ -50,7 +52,7 @@ export function OptionRow({ title, description, selected, onPress }: OptionRowPr
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: MIN_TOUCH,
+    minHeight: control.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
