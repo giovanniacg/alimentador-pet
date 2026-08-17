@@ -29,7 +29,7 @@ Se vier o campo errado pro modo ativo, o firmware converte pelo fator
 |---|---|---|
 | `feeder/sp01/cmd/feed` | `{"secs": 8}` ou `{"grams": 40}` | alimenta agora |
 | `feeder/sp01/cmd/skip` | `{}` | pula a PROXIMA refeicao agendada |
-| `feeder/sp01/cmd/schedule` | `{"meals":[{"h":7,"m":0,"secs":8},{"h":19,"m":0,"secs":8}]}` | substitui a agenda inteira (max 8 refeicoes; cada meal com `secs` ou `grams`) |
+| `feeder/sp01/cmd/schedule` | `{"meals":[{"h":7,"m":0,"secs":8},{"h":19,"m":0,"secs":12,"days":[0,6]}]}` | substitui a agenda inteira (max 8 refeicoes; cada meal com `secs` ou `grams`, e `days` opcional: lista de dias da semana em que vale, 0=domingo..6=sabado; omitido = todos os dias) |
 | `feeder/sp01/cmd/config` | objeto parcial, ver abaixo | altera config; campos omitidos ficam como estao |
 | `feeder/sp01/cmd/siren` | `{}` ou `{"secs": 3}` | toca SO a sirene, sem dosar (default: siren_secs da config, teto 10s); emite evento `{"type":"siren"}` |
 | `feeder/sp01/cmd/tare` | `{}` | tara a balanca (so modos scale) |
