@@ -58,11 +58,18 @@
 // Uma refeicao guarda os DOIS jeitos de pedir comida. O app manda um deles
 // (secs no modo timer, grams nos modos scale) e o campo que nao veio fica 0.
 // Na hora de dosar, o firmware converte pelo g_per_s da config se precisar.
+// Dias da semana em que a refeicao vale, um bit por dia, 0=domingo..6=sabado
+// (a mesma numeracao do dayOfTheWeek() do RTClib e do "days" do contrato).
+// Mascara cheia = todos os dias, que e o default de quem omite o campo.
+#define DIAS_TODOS 0x7F
+#define DIA_BIT(d) ((uint8_t)(1u << (d)))
+
 struct Refeicao {
   uint8_t  hora;
   uint8_t  minuto;
   uint16_t gramas;    // 0 = nao informado
   uint16_t segundos;  // 0 = nao informado
+  uint8_t  dias;      // bitmask; 0 nunca e valido (seria refeicao que nao toca)
 };
 
 // --- modos de dosagem ---

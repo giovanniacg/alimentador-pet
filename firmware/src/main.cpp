@@ -224,6 +224,22 @@ static void tratarSchedule(const JsonDocument &doc) {
     lista[n].minuto   = m["m"]     | 0;
     lista[n].gramas   = m["grams"] | 0;
     lista[n].segundos = m["secs"]  | 0;
+
+    // days omitido = todos os dias. days presente vira bitmask; dia fora de
+    // 0..6 e ignorado, e uma lista vazia (ou so com lixo) cai como mascara
+    // zerada, que a agenda recusa - senao seria refeicao que nunca toca.
+    JsonArrayConst dias = m["days"].as<JsonArrayConst>();
+    if (dias.isNull()) {
+      lista[n].dias = DIAS_TODOS;
+    } else {
+      uint8_t mascara = 0;
+      for (JsonVariantConst d : dias) {
+        int v = d.as<int>();
+        if (v < 0 || v > 6) { logf("[cmd] schedule: dia %d fora de 0..6, ignorado", v); continue; }
+        mascara |= DIA_BIT(v);
+      }
+      lista[n].dias = mascara;
+    }
     n++;
   }
 

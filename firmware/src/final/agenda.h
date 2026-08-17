@@ -14,8 +14,12 @@ Refeicao agendaItem(uint8_t i);
 // vazia demais ou com hora invalida.
 bool agendaDefinir(const Refeicao *lista, uint8_t quantidade);
 
-// Proxima refeicao a partir de agora (rola para o dia seguinte se preciso).
-// Devolve false quando nao ha nenhuma agendada.
+// A refeicao vale neste dia da semana? (0=domingo..6=sabado)
+bool agendaValeNoDia(const Refeicao &r, uint8_t diaDaSemana);
+
+// Proxima refeicao a partir de agora, respeitando os dias da semana de cada
+// uma. Varre ate sete dias a frente, porque uma refeicao so de segunda pode
+// estar a quase uma semana daqui. Devolve false quando nao ha nenhuma.
 bool agendaProxima(Refeicao &saida);
 
 // Refeicao vencida que ainda nao foi servida hoje, se houver. A janela de

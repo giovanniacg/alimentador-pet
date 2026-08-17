@@ -26,9 +26,10 @@ static void salvar() {
   Preferences nvs;
   nvs.begin(NVS_NAMESPACE, false);
   nvs.putUChar("n_ref", quantidade);
-  // Chave "refeicoes2": o layout do struct mudou quando a refeicao ganhou o
-  // campo segundos. Chave nova evita ler lixo de um firmware anterior.
-  nvs.putBytes("refeicoes2", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
+  // A chave carrega a versao do layout do struct: v2 quando a refeicao ganhou
+  // o campo segundos, v3 quando ganhou a mascara de dias. Chave nova a cada
+  // mudanca de tamanho evita ler lixo gravado por um firmware anterior.
+  nvs.putBytes("refeicoes3", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
   nvs.putBool("skip", skipProxima);
   nvs.putUChar("dia_masc", diaDaMascara);
   nvs.putUChar("masc", mascaraServidas);
@@ -42,12 +43,21 @@ void agendaIniciar() {
   skipProxima   = nvs.getBool("skip", false);
   diaDaMascara    = nvs.getUChar("dia_masc", 0);
   mascaraServidas = nvs.getUChar("masc", 0);
-  size_t lidos  = nvs.getBytes("refeicoes2", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
+  size_t lidos  = nvs.getBytes("refeicoes3", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
   nvs.end();
 
   if (lidos != sizeof(Refeicao) * MAX_REFEICOES || quantidade > MAX_REFEICOES) {
     quantidade = 0;
     memset(refeicoes, 0, sizeof(refeicoes));
+  }
+
+  // Mascara zerada so aparece por corrupcao: agendaDefinir nunca grava isso.
+  // Entre errar para mais e deixar o bicho sem comer, o projeto erra para mais.
+  for (uint8_t i = 0; i < quantidade; i++) {
+    if (refeicoes[i].dias == 0) {
+      logf("[agenda] refeicao %u com mascara de dias zerada na NVS, assumindo todos os dias", i);
+      refeicoes[i].dias = DIAS_TODOS;
+    }
   }
   logf("[agenda] %u refeicoes na NVS | skip=%s", quantidade, skipProxima ? "sim" : "nao");
 }
@@ -77,6 +87,12 @@ bool agendaDefinir(const Refeicao *lista, uint8_t n) {
            configAtual().maxSecs, lista[i].segundos);
       return false;
     }
+    // days: [] chega aqui como mascara zerada. Aceitar seria gravar uma
+    // refeicao que nunca toca, e o app nao teria como perceber isso.
+    if (lista[i].dias == 0) {
+      logf("[agenda] recusada: refeicao %u sem nenhum dia da semana valido", i);
+      return false;
+    }
   }
   memset(refeicoes, 0, sizeof(refeicoes));
   for (uint8_t i = 0; i < n; i++) refeicoes[i] = lista[i];
@@ -89,21 +105,33 @@ bool agendaDefinir(const Refeicao *lista, uint8_t n) {
   return true;
 }
 
+bool agendaValeNoDia(const Refeicao &r, uint8_t diaDaSemana) {
+  return (r.dias & DIA_BIT(diaDaSemana)) != 0;
+}
+
+// Com dias da semana nao basta mais rolar para amanha: uma refeicao so de
+// segunda pode estar a seis dias daqui. Varre dia a dia, ate uma semana a
+// frente, e para no primeiro horario que serve.
 bool agendaProxima(Refeicao &saida) {
   if (quantidade == 0) return false;
   DateTime agora = relogioAgora();
   int minutosAgora = agora.hour() * 60 + agora.minute();
+  uint8_t diaHoje = agora.dayOfTheWeek();   // 0=domingo, igual ao contrato
 
-  int melhor = -1, melhorDelta = 100000;
-  for (uint8_t i = 0; i < quantidade; i++) {
-    int m = refeicoes[i].hora * 60 + refeicoes[i].minuto;
-    int delta = m - minutosAgora;
-    if (delta <= 0) delta += 24 * 60;      // rola para amanha
-    if (delta < melhorDelta) { melhorDelta = delta; melhor = i; }
+  for (uint8_t offset = 0; offset <= 7; offset++) {
+    uint8_t dia = (uint8_t)((diaHoje + offset) % 7);
+    int melhor = -1, melhorMinuto = 100000;
+
+    for (uint8_t i = 0; i < quantidade; i++) {
+      if (!agendaValeNoDia(refeicoes[i], dia)) continue;
+      int m = refeicoes[i].hora * 60 + refeicoes[i].minuto;
+      if (offset == 0 && m <= minutosAgora) continue;   // ja passou hoje
+      if (m < melhorMinuto) { melhorMinuto = m; melhor = i; }
+    }
+
+    if (melhor >= 0) { saida = refeicoes[melhor]; return true; }
   }
-  if (melhor < 0) return false;
-  saida = refeicoes[melhor];
-  return true;
+  return false;
 }
 
 bool agendaVencida(Refeicao &saida, uint8_t &indice, uint16_t janelaMin) {
@@ -113,8 +141,11 @@ bool agendaVencida(Refeicao &saida, uint8_t &indice, uint16_t janelaMin) {
   DateTime agora = relogioAgora();
   int minutosAgora = agora.hour() * 60 + agora.minute();
 
+  uint8_t diaHoje = agora.dayOfTheWeek();
+
   for (uint8_t i = 0; i < quantidade; i++) {
     if (mascaraServidas & (1u << i)) continue;
+    if (!agendaValeNoDia(refeicoes[i], diaHoje)) continue;   // nao e dia dela
     int m = refeicoes[i].hora * 60 + refeicoes[i].minuto;
     int atraso = minutosAgora - m;
     if (atraso < 0 || atraso > (int)janelaMin) continue;
@@ -150,6 +181,19 @@ String agendaJson() {
     s += ",\"m\":";  s += refeicoes[i].minuto;
     if (refeicoes[i].segundos > 0) { s += ",\"secs\":";  s += refeicoes[i].segundos; }
     if (refeicoes[i].gramas   > 0) { s += ",\"grams\":"; s += refeicoes[i].gramas; }
+    // days so aparece quando restringe alguma coisa: "todos os dias" e o
+    // default do contrato e polui o espelho a toa.
+    if (refeicoes[i].dias != DIAS_TODOS) {
+      s += ",\"days\":[";
+      bool primeiro = true;
+      for (uint8_t d = 0; d < 7; d++) {
+        if (!(refeicoes[i].dias & DIA_BIT(d))) continue;
+        if (!primeiro) s += ',';
+        s += d;
+        primeiro = false;
+      }
+      s += ']';
+    }
     s += '}';
   }
   s += "]}";
