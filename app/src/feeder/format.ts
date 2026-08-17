@@ -1,4 +1,5 @@
-import type { ConnectionStatus, Dose, FeedMode, FeederEvent, Meal } from '@/feeder/types';
+import type { ConnectionStatus, Dose, FeedMode, FeederEvent, Meal, Weekday } from '@/feeder/types';
+import { isEveryDay, normalizeDays, sameDays } from '@/feeder/weekdays';
 
 /**
  * Texto que aparece na tela. Portugues simples, sem jargao: quem usa o app
@@ -139,6 +140,70 @@ export function doseUnitName(mode: FeedMode): string {
       return exhaustive;
     }
   }
+}
+
+/** Nome completo de cada dia, na ordem do contrato (0 = domingo). */
+const DAY_NAMES: readonly string[] = [
+  'domingo',
+  'segunda',
+  'terça',
+  'quarta',
+  'quinta',
+  'sexta',
+  'sábado',
+];
+
+/** Abreviacao de tres letras, para a lista curta. */
+const DAY_SHORT: readonly string[] = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+/** Letra do chip. Repete D S T Q Q S S, como todo calendario brasileiro. */
+const DAY_LETTER: readonly string[] = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+/** Artigo certo: "no domingo", "na terça". */
+const DAY_ARTICLE: readonly string[] = ['no', 'na', 'na', 'na', 'na', 'na', 'no'];
+
+function dayText(day: Weekday, table: readonly string[]): string {
+  return table[day] ?? '';
+}
+
+/** "domingo", "terça". Usado no nome acessível do chip. */
+export function dayName(day: Weekday): string {
+  return dayText(day, DAY_NAMES);
+}
+
+/** "D", "S", "T"... o rótulo curto do chip. */
+export function dayLetter(day: Weekday): string {
+  return dayText(day, DAY_LETTER);
+}
+
+function capitalize(text: string): string {
+  return text.length === 0 ? text : text[0].toUpperCase() + text.slice(1);
+}
+
+/**
+ * Dias em linguagem de gente: "Todos os dias", "Seg a sex", "Sáb e dom",
+ * "Só na terça" ou uma lista curta ("Ter, qui").
+ */
+export function formatDays(days: readonly Weekday[]): string {
+  const ordered = normalizeDays(days);
+  if (ordered.length === 0) {
+    return 'Nenhum dia escolhido';
+  }
+  if (isEveryDay(ordered)) {
+    return 'Todos os dias';
+  }
+  if (sameDays(ordered, [1, 2, 3, 4, 5])) {
+    return 'Seg a sex';
+  }
+  if (sameDays(ordered, [0, 6])) {
+    return 'Sáb e dom';
+  }
+  const only = ordered[0];
+  if (ordered.length === 1 && only !== undefined) {
+    return `Só ${dayText(only, DAY_ARTICLE)} ${dayName(only)}`;
+  }
+  const parts = ordered.map((day) => dayText(day, DAY_SHORT));
+  return capitalize(parts.join(', '));
 }
 
 function isSameDay(a: Date, b: Date): boolean {

@@ -16,11 +16,20 @@ export type Dose =
   | { readonly unit: 'secs'; readonly secs: number }
   | { readonly unit: 'grams'; readonly grams: number };
 
-/** Uma refeicao agendada: hora, minuto e dose. */
+/** Dia da semana no formato do contrato: 0 = domingo ... 6 = sabado. */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/**
+ * Uma refeicao agendada: hora, minuto, dose e dias em que vale.
+ *
+ * Dentro do app `days` e sempre uma lista preenchida e ordenada; no fio ele
+ * some quando vale a semana toda (contrato: `days` omitido = todos os dias).
+ */
 export type Meal = {
   readonly h: number;
   readonly m: number;
   readonly dose: Dose;
+  readonly days: readonly Weekday[];
 };
 
 /** Ultima refeicao entregue, como vem no topico state. */

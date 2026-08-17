@@ -56,3 +56,10 @@ export const radius = {
  * WCAG 2.2 SC 2.5.8 pede 24x24; aqui vai bem acima porque o publico e 50+.
  */
 export const MIN_TOUCH = 56;
+
+/**
+ * Alvo minimo dos controles que aparecem em fileira (os chips de dia da
+ * semana). Continua bem acima dos 24x24 do SC 2.5.8; sao sete numa linha, e
+ * abaixo disso o chip nao caberia sem quebrar em telas estreitas.
+ */
+export const MIN_CHIP_TOUCH = 44;

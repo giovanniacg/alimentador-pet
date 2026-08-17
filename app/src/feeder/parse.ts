@@ -13,6 +13,7 @@ import {
   SIREN_SECS_MIN,
 } from '@/config';
 import { clamp, doseUnitForMode } from '@/feeder/mode';
+import { ALL_DAYS, isEveryDay, isWeekday, normalizeDays } from '@/feeder/weekdays';
 import type {
   ConfigPatch,
   Dose,
@@ -22,6 +23,7 @@ import type {
   FeederState,
   LastMeal,
   Meal,
+  Weekday,
 } from '@/feeder/types';
 
 /**
@@ -103,7 +105,28 @@ export function parseDose(
   return null;
 }
 
-/** Valida uma refeicao: hora 0-23, minuto 0-59, dose positiva em segundos ou gramas. */
+/**
+ * Le os dias em que a refeicao vale.
+ *
+ * Campo ausente ou que nao e lista significa a semana toda, como manda o
+ * contrato. Lista presente mas sem nenhum dia valido devolve vazio, e quem
+ * chama descarta a refeicao: um horario que nunca acontece nao pode aparecer
+ * na tela como "todos os dias".
+ */
+export function parseDays(value: unknown): Weekday[] {
+  if (!Array.isArray(value)) {
+    return [...ALL_DAYS];
+  }
+  const days: Weekday[] = [];
+  for (const item of value) {
+    if (isWeekday(item)) {
+      days.push(item);
+    }
+  }
+  return normalizeDays(days);
+}
+
+/** Valida uma refeicao: hora 0-23, minuto 0-59, dose positiva e ao menos um dia. */
 export function parseMeal(value: unknown, preferred?: Dose['unit']): Meal | null {
   if (!isRecord(value)) {
     return null;
@@ -117,7 +140,11 @@ export function parseMeal(value: unknown, preferred?: Dose['unit']): Meal | null
   if (h < 0 || h > 23 || m < 0 || m > 59) {
     return null;
   }
-  return { h: Math.trunc(h), m: Math.trunc(m), dose };
+  const days = parseDays(value.days);
+  if (days.length === 0) {
+    return null;
+  }
+  return { h: Math.trunc(h), m: Math.trunc(m), dose, days };
 }
 
 function parseLastMeal(value: unknown, preferred?: Dose['unit']): LastMeal | null {
@@ -248,14 +275,22 @@ export function dosePayload(dose: Dose): { secs: number } | { grams: number } {
   }
 }
 
-/** Uma refeicao no formato do contrato. */
-export function mealPayload(meal: Meal): Record<string, number> {
-  return { h: meal.h, m: meal.m, ...dosePayload(meal.dose) };
+/**
+ * Uma refeicao no formato do contrato. `days` so entra quando a refeicao NAO
+ * vale a semana toda: omitido ja significa todos os dias, e mandar a lista
+ * cheia seria ruido no payload.
+ */
+export function mealPayload(meal: Meal): Record<string, unknown> {
+  const base: Record<string, unknown> = { h: meal.h, m: meal.m, ...dosePayload(meal.dose) };
+  if (!isEveryDay(meal.days)) {
+    base.days = normalizeDays(meal.days);
+  }
+  return base;
 }
 
 /** Serializa a agenda no formato do comando `cmd/schedule`. */
 export function scheduleCommandPayload(meals: readonly Meal[]): {
-  meals: Record<string, number>[];
+  meals: Record<string, unknown>[];
 } {
   return { meals: sortMeals(meals).slice(0, MAX_MEALS).map(mealPayload) };
 }

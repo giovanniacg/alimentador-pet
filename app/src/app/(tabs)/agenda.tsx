@@ -3,6 +3,7 @@ import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
+import { DayChips } from '@/components/day-chips';
 import { Screen } from '@/components/screen';
 import { Stepper } from '@/components/stepper';
 import { CONFIG_DEFAULTS, GRAMS_DEFAULT, MAX_MEALS, SECS_DEFAULT } from '@/config';
@@ -11,6 +12,7 @@ import {
   doseFieldLabel,
   doseUnitName,
   formatClock,
+  formatDays,
   formatDose,
   modeLabel,
 } from '@/feeder/format';
@@ -25,6 +27,7 @@ import {
 import { sortMeals } from '@/feeder/parse';
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { Dose, FeedMode, Meal } from '@/feeder/types';
+import { ALL_DAYS, sameDays } from '@/feeder/weekdays';
 import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
 
 type Editing = {
@@ -46,7 +49,12 @@ function sameSchedule(a: readonly Meal[], b: readonly Meal[]): boolean {
     if (other === undefined) {
       return false;
     }
-    return meal.h === other.h && meal.m === other.m && sameDose(meal.dose, other.dose);
+    return (
+      meal.h === other.h &&
+      meal.m === other.m &&
+      sameDose(meal.dose, other.dose) &&
+      sameDays(meal.days, other.days)
+    );
   });
 }
 
@@ -85,7 +93,7 @@ export default function AgendaScreen() {
       Alert.alert('Limite alcançado', `O alimentador guarda no máximo ${MAX_MEALS} refeições.`);
       return;
     }
-    setEditing({ index: null, meal: { h: 12, m: 0, dose: newDose() } });
+    setEditing({ index: null, meal: { h: 12, m: 0, dose: newDose(), days: ALL_DAYS } });
   };
 
   const openEdit = (index: number, meal: Meal) => {
@@ -95,7 +103,7 @@ export default function AgendaScreen() {
   };
 
   const commitEditing = () => {
-    if (editing === null) {
+    if (editing === null || editing.meal.days.length === 0) {
       return;
     }
     const next = [...meals];
@@ -164,7 +172,10 @@ export default function AgendaScreen() {
         ) : (
           <Text style={styles.muted}>
             {deviceMeals
-              .map((meal) => `${formatClock(meal)} (${formatDose(shownDose(meal))})`)
+              .map(
+                (meal) =>
+                  `${formatClock(meal)} (${formatDose(shownDose(meal))}, ${formatDays(meal.days).toLowerCase()})`
+              )
               .join('   ·   ')}
           </Text>
         )}
@@ -267,6 +278,7 @@ function MealRow({
       <View style={styles.rowInfo}>
         <Text style={styles.rowClock}>{formatClock(meal)}</Text>
         <Text style={styles.rowDose}>{describeDose(dose)}</Text>
+        <Text style={styles.rowDays}>{formatDays(meal.days)}</Text>
       </View>
       <RowButton
         label="Mudar"
@@ -331,6 +343,7 @@ function MealEditor({
   const unit = doseUnitForMode(mode);
   const limits = doseLimits(unit, maxSecs);
   const dose = makeDose(unit, clamp(doseAmount(meal.dose), limits.min, limits.max));
+  const noDays = meal.days.length === 0;
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
@@ -381,7 +394,26 @@ function MealEditor({
             }}
           />
 
-          <BigButton label="Guardar na lista" onPress={onConfirm} />
+          <DayChips
+            label="Dias da semana"
+            days={meal.days}
+            onChange={(days) => {
+              onChange({ ...editing, meal: { ...meal, days } });
+            }}
+          />
+
+          {noDays ? (
+            <Text style={styles.emptyDays} accessibilityRole="alert">
+              Escolha pelo menos um dia da semana. Sem nenhum dia, essa refeição nunca aconteceria.
+            </Text>
+          ) : null}
+
+          <BigButton
+            label="Guardar na lista"
+            onPress={onConfirm}
+            disabled={noDays}
+            disabledReason="Escolha pelo menos um dia da semana."
+          />
           <BigButton label="Cancelar" variant="secondary" onPress={onCancel} />
         </View>
       </View>
@@ -427,6 +459,16 @@ const styles = StyleSheet.create({
   rowDose: {
     fontSize: fontSizes.body,
     color: colors.muted,
+  },
+  rowDays: {
+    fontSize: fontSizes.small,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  emptyDays: {
+    fontSize: fontSizes.small,
+    color: colors.red,
+    fontWeight: '700',
   },
   rowButton: {
     minHeight: MIN_TOUCH,
