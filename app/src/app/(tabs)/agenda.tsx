@@ -5,11 +5,26 @@ import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
 import { Screen } from '@/components/screen';
 import { Stepper } from '@/components/stepper';
-import { GRAMS_MAX, GRAMS_MIN, GRAMS_STEP, MAX_MEALS } from '@/config';
-import { formatClock, formatGrams } from '@/feeder/format';
+import { CONFIG_DEFAULTS, GRAMS_DEFAULT, MAX_MEALS, SECS_DEFAULT } from '@/config';
+import {
+  describeDose,
+  doseFieldLabel,
+  doseUnitName,
+  formatClock,
+  formatDose,
+  modeLabel,
+} from '@/feeder/format';
+import {
+  clamp,
+  doseAmount,
+  doseForMode,
+  doseLimits,
+  doseUnitForMode,
+  makeDose,
+} from '@/feeder/mode';
 import { sortMeals } from '@/feeder/parse';
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
-import type { Meal } from '@/feeder/types';
+import type { Dose, FeedMode, Meal } from '@/feeder/types';
 import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
 
 type Editing = {
@@ -18,7 +33,9 @@ type Editing = {
   readonly meal: Meal;
 };
 
-const NEW_MEAL: Meal = { h: 12, m: 0, grams: 40 };
+function sameDose(a: Dose, b: Dose): boolean {
+  return a.unit === b.unit && doseAmount(a) === doseAmount(b);
+}
 
 function sameSchedule(a: readonly Meal[], b: readonly Meal[]): boolean {
   if (a.length !== b.length) {
@@ -26,12 +43,15 @@ function sameSchedule(a: readonly Meal[], b: readonly Meal[]): boolean {
   }
   return a.every((meal, index) => {
     const other = b[index];
-    return other !== undefined && meal.h === other.h && meal.m === other.m && meal.grams === other.grams;
+    if (other === undefined) {
+      return false;
+    }
+    return meal.h === other.h && meal.m === other.m && sameDose(meal.dose, other.dose);
   });
 }
 
 export default function AgendaScreen() {
-  const { schedule, saveSchedule, status, state } = useFeeder();
+  const { schedule, saveSchedule, status, state, config, mode, gramsPerSecond } = useFeeder();
   /**
    * `draft === null` significa "seguindo o que esta no aparelho". Assim a tela
    * acompanha o topico retained sem copiar estado dentro de um Effect.
@@ -44,13 +64,34 @@ export default function AgendaScreen() {
   const meals: readonly Meal[] = draft ?? deviceMeals;
   const pending = draft !== null && !sameSchedule(draft, deviceMeals);
   const online = isFeederOnline(status, state);
+  const maxSecs = config?.maxSecs ?? CONFIG_DEFAULTS.maxSecs;
+
+  /** Dose de uma refeicao nova, na unidade do modo vigente. */
+  const newDose = (): Dose => {
+    const unit = doseUnitForMode(mode);
+    return makeDose(
+      unit,
+      unit === 'secs'
+        ? (config?.defaultSecs ?? SECS_DEFAULT)
+        : (config?.defaultGrams ?? GRAMS_DEFAULT)
+    );
+  };
+
+  /** Mostra a dose sempre na medida do modo em uso, convertendo se preciso. */
+  const shownDose = (meal: Meal): Dose => doseForMode(meal.dose, mode, gramsPerSecond);
 
   const openNew = () => {
     if (meals.length >= MAX_MEALS) {
       Alert.alert('Limite alcançado', `O alimentador guarda no máximo ${MAX_MEALS} refeições.`);
       return;
     }
-    setEditing({ index: null, meal: NEW_MEAL });
+    setEditing({ index: null, meal: { h: 12, m: 0, dose: newDose() } });
+  };
+
+  const openEdit = (index: number, meal: Meal) => {
+    // O editor trabalha na unidade do modo vigente: converter na abertura evita
+    // salvar segundos num aparelho que agora pesa gramas.
+    setEditing({ index, meal: { ...meal, dose: shownDose(meal) } });
   };
 
   const commitEditing = () => {
@@ -122,9 +163,12 @@ export default function AgendaScreen() {
           <Text style={styles.muted}>Nenhum horário gravado.</Text>
         ) : (
           <Text style={styles.muted}>
-            {deviceMeals.map((meal) => `${formatClock(meal)} (${meal.grams} g)`).join('   ·   ')}
+            {deviceMeals
+              .map((meal) => `${formatClock(meal)} (${formatDose(shownDose(meal))})`)
+              .join('   ·   ')}
           </Text>
         )}
+        <Text style={styles.muted}>{modeHint(mode)}</Text>
       </Card>
 
       {pending ? (
@@ -146,8 +190,9 @@ export default function AgendaScreen() {
           <MealRow
             key={`${meal.h}-${meal.m}-${index}`}
             meal={meal}
+            dose={shownDose(meal)}
             onEdit={() => {
-              setEditing({ index, meal });
+              openEdit(index, meal);
             }}
             onRemove={() => {
               removeMeal(index);
@@ -179,6 +224,8 @@ export default function AgendaScreen() {
 
       <MealEditor
         editing={editing}
+        mode={mode}
+        maxSecs={maxSecs}
         onChange={setEditing}
         onCancel={() => {
           setEditing(null);
@@ -189,12 +236,29 @@ export default function AgendaScreen() {
   );
 }
 
+/** Explica, em uma linha, por que a medida da tela e essa. */
+function modeHint(mode: FeedMode): string {
+  switch (mode) {
+    case 'timer':
+      return `Modo em uso: ${modeLabel(mode)}. As refeições são medidas em segundos de ração.`;
+    case 'scale_bowl':
+    case 'scale_hopper':
+      return `Modo em uso: ${modeLabel(mode)}. As refeições são medidas em gramas.`;
+    default: {
+      const exhaustive: never = mode;
+      return exhaustive;
+    }
+  }
+}
+
 function MealRow({
   meal,
+  dose,
   onEdit,
   onRemove,
 }: {
   readonly meal: Meal;
+  readonly dose: Dose;
   readonly onEdit: () => void;
   readonly onRemove: () => void;
 }) {
@@ -202,9 +266,13 @@ function MealRow({
     <View style={styles.row}>
       <View style={styles.rowInfo}>
         <Text style={styles.rowClock}>{formatClock(meal)}</Text>
-        <Text style={styles.rowGrams}>{formatGrams(meal.grams)}</Text>
+        <Text style={styles.rowDose}>{describeDose(dose)}</Text>
       </View>
-      <RowButton label="Mudar" accessibilityLabel={`Mudar refeição das ${formatClock(meal)}`} onPress={onEdit} />
+      <RowButton
+        label="Mudar"
+        accessibilityLabel={`Mudar refeição das ${formatClock(meal)}`}
+        onPress={onEdit}
+      />
       <RowButton
         label="Apagar"
         danger
@@ -243,11 +311,15 @@ function RowButton({
 
 function MealEditor({
   editing,
+  mode,
+  maxSecs,
   onChange,
   onCancel,
   onConfirm,
 }: {
   readonly editing: Editing | null;
+  readonly mode: FeedMode;
+  readonly maxSecs: number;
   readonly onChange: (next: Editing) => void;
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
@@ -256,6 +328,9 @@ function MealEditor({
     return null;
   }
   const { meal } = editing;
+  const unit = doseUnitForMode(mode);
+  const limits = doseLimits(unit, maxSecs);
+  const dose = makeDose(unit, clamp(doseAmount(meal.dose), limits.min, limits.max));
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
@@ -294,15 +369,15 @@ function MealEditor({
           />
 
           <Stepper
-            label="Quantidade"
-            value={meal.grams}
-            display={formatGrams(meal.grams)}
-            min={GRAMS_MIN}
-            max={GRAMS_MAX}
-            step={GRAMS_STEP}
-            unitLabel="quantidade de ração"
-            onChange={(grams) => {
-              onChange({ ...editing, meal: { ...meal, grams } });
+            label={doseFieldLabel(mode)}
+            value={doseAmount(dose)}
+            display={formatDose(dose)}
+            min={limits.min}
+            max={limits.max}
+            step={limits.step}
+            unitLabel={doseUnitName(mode)}
+            onChange={(amount) => {
+              onChange({ ...editing, meal: { ...meal, dose: makeDose(unit, amount) } });
             }}
           />
 
@@ -349,7 +424,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  rowGrams: {
+  rowDose: {
     fontSize: fontSizes.body,
     color: colors.muted,
   },

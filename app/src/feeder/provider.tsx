@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import {
+  CONFIG_DEFAULTS,
   CONNECT_TIMEOUT_MS,
   KEEPALIVE_SECONDS,
   MAX_EVENTS_IN_MEMORY,
@@ -18,11 +19,23 @@ import {
   RECONNECT_MIN_MS,
 } from '@/config';
 import { clearCredentials, loadCredentials, saveCredentials } from '@/feeder/credentials';
-import { parseEvent, parseSchedule, parseState, scheduleCommandPayload } from '@/feeder/parse';
+import {
+  configCommandPayload,
+  dosePayload,
+  parseConfig,
+  parseEvent,
+  parseSchedule,
+  parseState,
+  scheduleCommandPayload,
+} from '@/feeder/parse';
 import { SUBSCRIBED_TOPICS, TOPICS, brokerUrl } from '@/feeder/topics';
 import type {
+  ConfigPatch,
   ConnectionStatus,
   Credentials,
+  Dose,
+  FeedMode,
+  FeederConfig,
   FeederEventEntry,
   FeederState,
   Meal,
@@ -42,13 +55,26 @@ type FeederContextValue = {
   readonly lastError: string | null;
   readonly state: FeederState | null;
   readonly schedule: readonly Meal[] | null;
+  /** Config vigente do aparelho; null enquanto o retained nao chegou. */
+  readonly config: FeederConfig | null;
+  /**
+   * Modo em vigor para a interface inteira. Vem do `state` (que o firmware
+   * republica a cada 60 s), cai para a config e, sem nenhum dos dois, assume
+   * `timer`, que e como a v1 sai de fabrica.
+   */
+  readonly mode: FeedMode;
+  /** Fator de conversao entre segundos e gramas, com o default do contrato. */
+  readonly gramsPerSecond: number;
   readonly events: readonly FeederEventEntry[];
   signIn(credentials: Credentials): Promise<void>;
   signOut(): Promise<void>;
-  feedNow(grams: number): Promise<void>;
+  feedNow(dose: Dose): Promise<void>;
   skipNextMeal(): Promise<void>;
   saveSchedule(meals: readonly Meal[]): Promise<void>;
+  /** Publica so os campos alterados em `cmd/config`. */
+  saveConfig(patch: ConfigPatch): Promise<void>;
   tare(): Promise<void>;
+  calibrate(knownGrams: number): Promise<void>;
   clearEvents(): void;
 };
 
@@ -65,6 +91,7 @@ type Session = {
   readonly status: ConnectionStatus;
   readonly state: FeederState | null;
   readonly schedule: readonly Meal[] | null;
+  readonly config: FeederConfig | null;
 };
 
 function emptySession(owner: Credentials | null): Session {
@@ -73,6 +100,7 @@ function emptySession(owner: Credentials | null): Session {
     status: owner === null ? { kind: 'idle' } : { kind: 'connecting' },
     state: null,
     schedule: null,
+    config: null,
   };
 }
 
@@ -102,7 +130,12 @@ export function FeederProvider({ children }: { children: ReactNode }) {
   // Sessao valida agora: a guardada, se pertencer as credenciais atuais.
   const session: Session =
     storedSession.owner === credentials ? storedSession : emptySession(credentials);
-  const { status, state, schedule } = session;
+  const { status, state, schedule, config } = session;
+
+  // Valores derivados no proprio render, sem Effect nem estado espelhado
+  // (React: "You Might Not Need an Effect").
+  const mode: FeedMode = state?.mode ?? config?.mode ?? CONFIG_DEFAULTS.mode;
+  const gramsPerSecond = config?.gramsPerSecond ?? CONFIG_DEFAULTS.gramsPerSecond;
 
   const clientRef = useRef<MqttClient | null>(null);
   const eventSeq = useRef(0);
@@ -220,6 +253,10 @@ export function FeederProvider({ children }: { children: ReactNode }) {
         patch((current) => ({ ...current, schedule: parseSchedule(raw) }));
         return;
       }
+      if (topic === TOPICS.config) {
+        patch((current) => ({ ...current, config: parseConfig(raw) }));
+        return;
+      }
       if (topic === TOPICS.event) {
         eventSeq.current += 1;
         const entry: FeederEventEntry = {
@@ -269,7 +306,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const feedNow = useCallback(
-    (grams: number) => publish(TOPICS.cmdFeed, { grams: Math.round(grams) }),
+    (dose: Dose) => publish(TOPICS.cmdFeed, dosePayload(dose)),
     [publish]
   );
 
@@ -280,7 +317,23 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     [publish]
   );
 
+  const saveConfig = useCallback(
+    async (patch: ConfigPatch): Promise<void> => {
+      const payload = configCommandPayload(patch);
+      if (Object.keys(payload).length === 0) {
+        return;
+      }
+      await publish(TOPICS.cmdConfig, payload);
+    },
+    [publish]
+  );
+
   const tare = useCallback(() => publish(TOPICS.cmdTare, {}), [publish]);
+
+  const calibrate = useCallback(
+    (knownGrams: number) => publish(TOPICS.cmdCalibrate, { known_g: Math.round(knownGrams) }),
+    [publish]
+  );
 
   const clearEvents = useCallback(() => {
     setEvents([]);
@@ -294,13 +347,18 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       lastError,
       state,
       schedule,
+      config,
+      mode,
+      gramsPerSecond,
       events,
       signIn,
       signOut,
       feedNow,
       skipNextMeal,
       saveSchedule,
+      saveConfig,
       tare,
+      calibrate,
       clearEvents,
     }),
     [
@@ -310,13 +368,18 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       lastError,
       state,
       schedule,
+      config,
+      mode,
+      gramsPerSecond,
       events,
       signIn,
       signOut,
       feedNow,
       skipNextMeal,
       saveSchedule,
+      saveConfig,
       tare,
+      calibrate,
       clearEvents,
     ]
   );

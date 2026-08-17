@@ -4,8 +4,10 @@ import { Tabs } from 'expo-router/js-tabs';
 import { colors, fontSizes } from '@/theme';
 
 /**
- * Tres abas, rotulo sempre visivel e icone grande.
+ * Quatro abas, rotulo sempre visivel e icone grande.
  * Rotulo escrito importa mais que icone bonito para quem usa pouco celular.
+ * As tres primeiras sao o dia a dia dos pais; "Ajustes" e a administracao
+ * remota do Giovanni.
  */
 export default function TabsLayout() {
   return (
@@ -43,6 +45,13 @@ export default function TabsLayout() {
         options={{
           title: 'Histórico',
           tabBarIcon: ({ color }) => <MaterialIcons name="list-alt" size={30} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ajustes"
+        options={{
+          title: 'Ajustes',
+          tabBarIcon: ({ color }) => <MaterialIcons name="settings" size={30} color={color} />,
         }}
       />
     </Tabs>

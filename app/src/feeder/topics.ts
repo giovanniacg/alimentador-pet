@@ -4,15 +4,23 @@ import { BROKER_PORT, BROKER_WS_PATH, TOPIC_PREFIX } from '@/config';
 export const TOPICS = {
   state: `${TOPIC_PREFIX}/state`,
   schedule: `${TOPIC_PREFIX}/schedule`,
+  config: `${TOPIC_PREFIX}/config`,
   event: `${TOPIC_PREFIX}/event`,
   cmdFeed: `${TOPIC_PREFIX}/cmd/feed`,
   cmdSkip: `${TOPIC_PREFIX}/cmd/skip`,
   cmdSchedule: `${TOPIC_PREFIX}/cmd/schedule`,
+  cmdConfig: `${TOPIC_PREFIX}/cmd/config`,
   cmdTare: `${TOPIC_PREFIX}/cmd/tare`,
+  cmdCalibrate: `${TOPIC_PREFIX}/cmd/calibrate`,
 } as const;
 
 /** Topicos que o app assina ao conectar. */
-export const SUBSCRIBED_TOPICS: readonly string[] = [TOPICS.state, TOPICS.schedule, TOPICS.event];
+export const SUBSCRIBED_TOPICS: readonly string[] = [
+  TOPICS.state,
+  TOPICS.schedule,
+  TOPICS.config,
+  TOPICS.event,
+];
 
 /**
  * Monta a URL do broker. O usuario digita so o dominio ("casa.exemplo.com.br");
