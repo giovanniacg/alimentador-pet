@@ -69,7 +69,7 @@ export const MAX_SECS_MAX = 120;
 export const MAX_SECS_STEP = 5;
 
 export const SIREN_SECS_MIN = 1;
-export const SIREN_SECS_MAX = 30;
+export const SIREN_SECS_MAX = 10;
 export const SIREN_SECS_STEP = 1;
 
 export const G_PER_S_MIN = 0.5;

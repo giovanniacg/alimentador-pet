@@ -49,11 +49,19 @@ Se vier o campo errado pro modo ativo, o firmware converte pelo fator
 }
 ```
 
+Faixas validadas pelo firmware (fora disso o campo e rejeitado e reportado no
+evento `config_changed`): `rpm` 5..60, `default_secs` 1..max_secs,
+`default_grams` 5..200, `max_secs` 5..120, `siren_secs` 1..10,
+`g_per_s` 0.5..20.
+
+Desempate: se um meal ou um `cmd/feed` trouxer `secs` E `grams` ao mesmo
+tempo, vale o campo do MODO ATIVO; o outro e ignorado.
+
 ## Estado (firmware -> app)
 
 | Topico | Retained | Payload |
 |---|---|---|
-| `feeder/sp01/state` | sim | `{"online":true,"rtc":"2026-08-15T19:00:00","mode":"timer","scale_g":null,"last_meal":{"ts":"...","secs":8,"ok":true},"next_meal":{"h":19,"m":0,"secs":8},"skip_next":false}` (`scale_g` so nos modos scale, senao null) |
+| `feeder/sp01/state` | sim | `{"online":true,"fw":"v2","rtc":"2026-08-15T19:00:00","mode":"timer","scale_g":null,"last_meal":{"ts":"...","secs":8,"ok":true},"next_meal":{"h":19,"m":0,"secs":8},"skip_next":false}` (`scale_g` so nos modos scale, senao null) |
 | `feeder/sp01/schedule` | sim | espelho da agenda vigente, mesmo formato do cmd |
 | `feeder/sp01/config` | sim | espelho da config vigente, formato acima |
 | `feeder/sp01/event` | nao | um JSON por evento: `{"type":"meal_done","secs":8}`, `{"type":"meal_failed","reason":"sem_racao"}` (so detectavel nos modos scale), `{"type":"button_feed"}`, `{"type":"config_changed"}` |
