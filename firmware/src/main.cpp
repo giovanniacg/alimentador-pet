@@ -84,6 +84,7 @@ static void escreverDose(JsonObject o, float segundos, float gramas) {
 static void publicarState() {
   JsonDocument doc;
   doc["online"] = true;
+  doc["fw"]     = FW_CONTRATO;
   doc["rtc"]    = relogioIso();
   doc["mode"]   = configModoNome(configModo());
 
@@ -287,6 +288,23 @@ static void tratarComando(const ComandoMqtt &c) {
 
   } else if (strcmp(sufixo, "config") == 0) {
     tratarConfig(doc);
+
+  } else if (strcmp(sufixo, "siren") == 0) {
+    // Sirene sozinha, sem dosar: serve para chamar o cachorro, testar a peca
+    // de longe e conferir que o aparelho esta vivo sem gastar racao.
+    // Roda aqui, no loop principal, porque bloqueia por segundos - dentro do
+    // handler do esp-mqtt isso derrubaria a conexao.
+    int secs = doc["secs"] | (int)configAtual().sireneSecs;
+    if (secs < 1) secs = 1;
+    if (secs > CFG_SIRENE_TETO) secs = CFG_SIRENE_TETO;   // clamp, nao recusa
+    sirene((uint8_t)secs);
+    JsonDocument ev;
+    ev["type"] = "siren";
+    ev["secs"] = secs;
+    String saida;
+    serializeJson(ev, saida);
+    publicarEvento(saida);
+    publicarState();
 
   } else if (strcmp(sufixo, "tare") == 0) {
     tarar("mqtt");

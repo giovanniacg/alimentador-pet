@@ -88,10 +88,22 @@ struct Config {
   float       gPorS;         // estimativa gramas/segundo, converte entre modos
 };
 
+// Faixas validadas, iguais as de docs/mqtt.md. Valor fora daqui e recusado e
+// reportado no evento config_changed, nunca aplicado pela metade.
 #define CFG_RPM_MIN         5
 #define CFG_RPM_MAX        60
+#define CFG_MAX_SECS_MIN    5
 #define CFG_MAX_SECS_TETO 120
+#define CFG_SIRENE_MIN      1
 #define CFG_SIRENE_TETO    10
+#define CFG_GRAMS_MIN       5
+#define CFG_GRAMS_MAX     200
+#define CFG_GPS_MIN      0.5f
+#define CFG_GPS_MAX     20.0f
+
+// Versao do contrato que este firmware fala. Vai no state para o app nao
+// precisar adivinhar com quem esta conversando.
+#define FW_CONTRATO "v2"
 
 // --- dosagem ---
 // Resultado de uma tentativa de dosar. Vira evento MQTT e bip no buzzer.

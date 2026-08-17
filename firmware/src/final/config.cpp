@@ -66,12 +66,12 @@ void configIniciar() {
   // Cinto de seguranca: NVS de uma versao antiga do firmware pode trazer
   // valor fora da faixa de hoje. Melhor cair no default do que girar rosca
   // com numero absurdo.
-  if (cfg.rpm < CFG_RPM_MIN || cfg.rpm > CFG_RPM_MAX)       cfg.rpm = 20;
-  if (cfg.maxSecs == 0 || cfg.maxSecs > CFG_MAX_SECS_TETO)  cfg.maxSecs = 60;
-  if (cfg.sireneSecs > CFG_SIRENE_TETO)                     cfg.sireneSecs = 2;
-  if (cfg.defaultSecs == 0 || cfg.defaultSecs > cfg.maxSecs) cfg.defaultSecs = 8;
-  if (cfg.defaultGrams == 0 || cfg.defaultGrams > 500)      cfg.defaultGrams = 40;
-  if (!(cfg.gPorS > 0.0f) || cfg.gPorS > 500.0f)            cfg.gPorS = 5.0f;
+  if (cfg.rpm < CFG_RPM_MIN || cfg.rpm > CFG_RPM_MAX)             cfg.rpm = 20;
+  if (cfg.maxSecs < CFG_MAX_SECS_MIN || cfg.maxSecs > CFG_MAX_SECS_TETO) cfg.maxSecs = 60;
+  if (cfg.sireneSecs < CFG_SIRENE_MIN || cfg.sireneSecs > CFG_SIRENE_TETO) cfg.sireneSecs = 2;
+  if (cfg.defaultSecs == 0 || cfg.defaultSecs > cfg.maxSecs)      cfg.defaultSecs = 8;
+  if (cfg.defaultGrams < CFG_GRAMS_MIN || cfg.defaultGrams > CFG_GRAMS_MAX) cfg.defaultGrams = 40;
+  if (cfg.gPorS < CFG_GPS_MIN || cfg.gPorS > CFG_GPS_MAX)         cfg.gPorS = 5.0f;
 
   motorSetRpm(cfg.rpm);
   logf("[config] modo=%s rpm=%u secs=%u grams=%u max=%u sirene=%s/%us g_por_s=%.2f",
@@ -126,7 +126,7 @@ bool configAplicarParcial(JsonObjectConst obj, JsonArray aplicados, JsonArray re
   // max_secs entra ANTES de default_secs: o teto novo e quem valida a dose.
   if (!obj["max_secs"].isNull()) {
     int v = obj["max_secs"].as<int>();
-    if (v < 1 || v > CFG_MAX_SECS_TETO) rejeitar(rejeitados, "max_secs", "fora da faixa 1..120");
+    if (v < CFG_MAX_SECS_MIN || v > CFG_MAX_SECS_TETO) rejeitar(rejeitados, "max_secs", "fora da faixa 5..120");
     else if (v != cfg.maxSecs) { cfg.maxSecs = (uint16_t)v; aplicados.add("max_secs"); mudou = true; }
   }
 
@@ -138,7 +138,7 @@ bool configAplicarParcial(JsonObjectConst obj, JsonArray aplicados, JsonArray re
 
   if (!obj["default_grams"].isNull()) {
     int v = obj["default_grams"].as<int>();
-    if (v < 1 || v > 500) rejeitar(rejeitados, "default_grams", "fora da faixa 1..500");
+    if (v < CFG_GRAMS_MIN || v > CFG_GRAMS_MAX) rejeitar(rejeitados, "default_grams", "fora da faixa 5..200");
     else if (v != cfg.defaultGrams) { cfg.defaultGrams = (uint16_t)v; aplicados.add("default_grams"); mudou = true; }
   }
 
@@ -147,15 +147,16 @@ bool configAplicarParcial(JsonObjectConst obj, JsonArray aplicados, JsonArray re
     if (v != cfg.sirene) { cfg.sirene = v; aplicados.add("siren"); mudou = true; }
   }
 
+  // Para desligar o aviso use siren=false; siren_secs=0 nao e valor valido.
   if (!obj["siren_secs"].isNull()) {
     int v = obj["siren_secs"].as<int>();
-    if (v < 0 || v > CFG_SIRENE_TETO) rejeitar(rejeitados, "siren_secs", "fora da faixa 0..10");
+    if (v < CFG_SIRENE_MIN || v > CFG_SIRENE_TETO) rejeitar(rejeitados, "siren_secs", "fora da faixa 1..10");
     else if (v != cfg.sireneSecs) { cfg.sireneSecs = (uint8_t)v; aplicados.add("siren_secs"); mudou = true; }
   }
 
   if (!obj["g_per_s"].isNull()) {
     float v = obj["g_per_s"].as<float>();
-    if (!(v > 0.0f) || v > 500.0f) rejeitar(rejeitados, "g_per_s", "precisa ser maior que zero e ate 500");
+    if (v < CFG_GPS_MIN || v > CFG_GPS_MAX) rejeitar(rejeitados, "g_per_s", "fora da faixa 0.5..20");
     else if (fabsf(v - cfg.gPorS) > 0.001f) { cfg.gPorS = v; aplicados.add("g_per_s"); mudou = true; }
   }
 
@@ -179,6 +180,11 @@ String configJson() {
 }
 
 // ---------------------------------------------------------------- conversao
+//
+// Desempate do contrato: se o pedido trouxer secs E grams, vale o campo do
+// MODO ATIVO e o outro e ignorado. Sai de graca da ordem dos testes abaixo -
+// configSegundosDe so e chamada no modo timer e prefere secs; configGramasDe
+// so e chamada nos modos scale e prefere grams.
 
 bool configPrecisaConverter(const Refeicao &r) {
   if (cfg.modo == ModoDosagem::TIMER) return r.segundos == 0;
