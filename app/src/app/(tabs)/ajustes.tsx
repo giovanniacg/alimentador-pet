@@ -364,8 +364,9 @@ export default function AjustesScreen() {
             peso que você já conhece.
           </Text>
           <BigButton
-            label="Zerar a balança (tara)"
+            label="Zerar a balança"
             variant="secondary"
+            hint="Também chamado de tara"
             onPress={confirmTare}
             disabled={!online || sending}
             disabledReason={sending ? 'Enviando...' : 'Só dá para zerar com o alimentador ligado.'}

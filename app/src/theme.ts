@@ -9,6 +9,18 @@
  *   red      #B3261E -> 6.5:1
  *   amber    #8A5A00 -> 5.6:1
  *   blue     #0B5FA5 -> 6.9:1
+ *
+ * Pares reais que nao envolvem o branco, medidos sem arredondar:
+ *   text/surface             17.1:1
+ *   muted/surface             8.0:1
+ *   text/greenSurface        16.4:1
+ *   text/redSurface          15.5:1
+ *   text/amberSurface        15.9:1
+ *   green/greenSurface        4.41:1  (so passa como texto grande, >= 24 dp)
+ *   red/redSurface            5.57:1
+ *   amber/amberSurface        5.30:1
+ *   border/white              3.25:1  (elemento de interface, limiar 3:1)
+ *   disabled/disabledSurface  4.75:1
  */
 export const colors = {
   background: '#FFFFFF',
@@ -25,7 +37,13 @@ export const colors = {
   amberSurface: '#FDF1DC',
   blue: '#0B5FA5',
   blueSurface: '#E4EEF7',
-  disabled: '#6B7280',
+  /**
+   * Componente inativo e isento do requisito de contraste, mas aqui o botao
+   * desabilitado carrega informacao util (o motivo do bloqueio) e o publico e
+   * 50+: #5B6270 da 4.75:1 sobre `disabledSurface`, contra 3.83:1 do tom
+   * anterior (#6B7280).
+   */
+  disabled: '#5B6270',
   disabledSurface: '#E3E5E8',
   white: '#FFFFFF',
   /** Fundo escurecido atras de um modal. */

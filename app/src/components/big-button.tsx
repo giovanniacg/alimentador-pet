@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { colors, control, fontCap, fontSizes, iconSize, radius, spacing, type } from '@/theme';
 
@@ -21,6 +21,8 @@ type BigButtonProps = {
    * altura, fundo solido, largura total e icone, nunca de tamanho de fonte.
    */
   readonly emphasis?: boolean;
+  /** Comando em andamento: indicador visivel e botao bloqueado. */
+  readonly loading?: boolean;
   /** Icone opcional ao lado do rotulo. Decorativo: o texto e que nomeia o botao. */
   readonly icon?: IconName;
   readonly style?: ViewStyle;
@@ -40,20 +42,22 @@ export function BigButton({
   disabled = false,
   disabledReason,
   emphasis = false,
+  loading = false,
   icon,
   style,
 }: BigButtonProps) {
-  const palette = paletteFor(variant, disabled);
+  const blocked = disabled || loading;
+  const palette = paletteFor(variant, blocked);
 
   return (
     <View style={styles.wrapper}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityHint={disabled ? disabledReason : hint}
-        accessibilityState={{ disabled }}
+        accessibilityHint={blocked ? disabledReason : hint}
+        accessibilityState={{ disabled: blocked, busy: loading }}
         accessible
-        disabled={disabled}
+        disabled={blocked}
         onPress={onPress}
         style={({ pressed }) => [
           styles.button,
@@ -65,7 +69,10 @@ export function BigButton({
           style,
         ]}>
         <View style={styles.labelRow}>
-          {icon === undefined ? null : (
+          {/* Espera de ate 15 s no aperto de mao com o servidor: sem
+              indicador de movimento a tela parece travada. */}
+          {loading ? <ActivityIndicator size="small" color={palette.text} /> : null}
+          {icon === undefined || loading ? null : (
             <MaterialIcons name={icon} size={iconSize.lg} color={palette.text} />
           )}
           {/* Rotulo de controle: cap 1.3 e quebra em duas linhas, nunca trunca
@@ -76,17 +83,17 @@ export function BigButton({
             {label}
           </Text>
         </View>
-        {hint === undefined || disabled ? null : (
+        {hint === undefined || blocked ? null : (
           <Text style={[styles.hint, { color: palette.text }]}>{hint}</Text>
         )}
       </Pressable>
       {/* Bloqueado, o usuario perde o botao. Nao pode perder junto a
           explicacao do que ele faria: o motivo vem primeiro, o que o botao faz
           fica logo abaixo, mais discreto. */}
-      {disabled && disabledReason !== undefined ? (
+      {blocked && disabledReason !== undefined ? (
         <Text style={styles.reason}>{disabledReason}</Text>
       ) : null}
-      {disabled && hint !== undefined ? (
+      {blocked && hint !== undefined ? (
         <Text style={[styles.reason, styles.mutedHint]}>{hint}</Text>
       ) : null}
     </View>

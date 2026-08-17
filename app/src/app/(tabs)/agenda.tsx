@@ -38,6 +38,8 @@ type Editing = {
   /** null quando e uma refeicao nova. */
   readonly index: number | null;
   readonly meal: Meal;
+  /** Hora com que a refeicao foi aberta, para o titulo do editor. */
+  readonly originalClock: string | null;
 };
 
 function sameDose(a: Dose, b: Dose): boolean {
@@ -97,13 +99,21 @@ export default function AgendaScreen() {
       Alert.alert('Limite alcançado', `O alimentador guarda no máximo ${MAX_MEALS} refeições.`);
       return;
     }
-    setEditing({ index: null, meal: { h: 12, m: 0, dose: newDose(), days: ALL_DAYS } });
+    setEditing({
+      index: null,
+      meal: { h: 12, m: 0, dose: newDose(), days: ALL_DAYS },
+      originalClock: null,
+    });
   };
 
   const openEdit = (index: number, meal: Meal) => {
     // O editor trabalha na unidade do modo vigente: converter na abertura evita
     // salvar segundos num aparelho que agora pesa gramas.
-    setEditing({ index, meal: { ...meal, dose: shownDose(meal) } });
+    setEditing({
+      index,
+      meal: { ...meal, dose: shownDose(meal) },
+      originalClock: formatClock(meal),
+    });
   };
 
   const commitEditing = () => {
@@ -404,7 +414,9 @@ function MealEditor({
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard} accessibilityViewIsModal>
           <Text style={styles.modalTitle} accessibilityRole="header">
-            {editing.index === null ? 'Nova refeição' : 'Mudar refeição'}
+            {editing.originalClock === null
+              ? 'Nova refeição'
+              : `Mudar refeição das ${editing.originalClock}`}
           </Text>
 
           {/* O conteudo rola; os botoes ficam fixos no rodape do cartao. Sem

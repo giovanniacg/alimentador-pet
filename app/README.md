@@ -11,7 +11,10 @@ repositório. Aquele documento manda; este app apenas o obedece.
 Os pais do Giovanni. Público 50+, não técnico. Consequências práticas no código:
 
 - Fonte grande (mínimo 16, corpo 20, números 30+), alto contraste, um tema claro só.
-- Alvo de toque nunca abaixo de 56 dp (WCAG 2.2 SC 2.5.8 pede 24, aqui vai bem acima).
+- Fonte escala com o sistema; caixa não escala, cresce. Altura de controle é
+  `minHeight` em dp fixo (`control.sm/md/lg/xl` em `theme.ts`), teto de 64 dp.
+- Alvo de toque em 56 dp de altura (WCAG 2.2 SC 2.5.8 pede 24x24). Nos chips de
+  dia da semana, os sete dividem uma linha só: quem garante o alvo é a altura.
 - Nenhuma ação por arrastar: ajuste é sempre por botão `−` / `+` (SC 2.5.7).
 - Informação nunca só por cor: todo estado tem símbolo e texto (SC 1.4.1).
 - Nada de jargão: não aparece "MQTT", "broker", "tópico" ou "QoS" em tela.
@@ -22,7 +25,7 @@ Os pais do Giovanni. Público 50+, não técnico. Consequências práticas no c�
 | Rota | Arquivo | O que faz |
 |---|---|---|
 | `/login` | `src/app/login.tsx` | Endereço do servidor, usuário e senha. Guarda no `expo-secure-store` e entra sozinho nas próximas aberturas. |
-| `/` | `src/app/(tabs)/index.tsx` | Estado do aparelho, última e próxima refeição, botão gigante Alimentar agora, pular próxima refeição, sair. |
+| `/` | `src/app/(tabs)/index.tsx` | Estado do aparelho, última e próxima refeição, Alimentar agora em destaque, sirene, pular próxima refeição, sair. |
 | `/agenda` | `src/app/(tabs)/agenda.tsx` | Até 8 refeições (hora + gramas). Salvar publica a agenda inteira. |
 | `/historico` | `src/app/(tabs)/historico.tsx` | Eventos recebidos durante a sessão. Sem persistência, por decisão de escopo. |
 

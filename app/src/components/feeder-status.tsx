@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { connectionLabel } from '@/feeder/format';
 import type { ConnectionStatus, FeederState } from '@/feeder/types';
-import { colors, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 type Tone = 'ok' | 'bad' | 'wait';
 
@@ -70,6 +70,26 @@ export function FeederStatusPanel({
 }) {
   const view = describeStatus(status, state);
   const palette = paletteFor(view.tone);
+  // Tudo certo e o caso de 95% do tempo: uma linha basta. Erro e espera
+  // continuam com o painel inteiro, porque ai o detalhe importa.
+  const calm = view.tone === 'ok';
+
+  if (calm) {
+    return (
+      <View
+        style={[styles.calmPanel, { backgroundColor: palette.surface, borderColor: palette.color }]}
+        accessible
+        accessibilityRole="summary"
+        accessibilityLabel={`${view.headline}. ${view.detail}`}>
+        <Text
+          style={[styles.calmSymbol, { color: palette.color }]}
+          maxFontSizeMultiplier={fontCap.display}>
+          {view.symbol}
+        </Text>
+        <Text style={[styles.headline, styles.calmHeadline]}>{view.headline}</Text>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -116,8 +136,27 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   symbol: {
-    fontSize: fontSizes.display,
-    fontWeight: '700',
+    ...type.display,
+    width: 48,
+    textAlign: 'center',
+  },
+  calmPanel: {
+    minHeight: control.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 2,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  calmSymbol: {
+    ...type.title,
+    width: 32,
+    textAlign: 'center',
+  },
+  calmHeadline: {
+    flex: 1,
   },
   texts: {
     flex: 1,

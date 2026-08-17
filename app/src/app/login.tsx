@@ -154,9 +154,9 @@ export default function LoginScreen() {
       <BigButton
         label={saving ? 'Entrando...' : 'Entrar'}
         emphasis
+        loading={saving}
         style={styles.submit}
         onPress={handleSubmit}
-        disabled={saving}
         disabledReason={saving ? 'Só um instante.' : undefined}
       />
     </Screen>

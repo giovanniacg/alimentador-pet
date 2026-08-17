@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Screen } from '@/components/screen';
@@ -35,6 +35,18 @@ export default function HistoricoScreen() {
     );
   }
 
+  // Toda acao destrutiva do app confirma antes; esta era a unica que nao.
+  const confirmClear = () => {
+    Alert.alert(
+      'Limpar a lista?',
+      'Os avisos já mostrados somem desta tela. Isso não mexe no alimentador.',
+      [
+        { text: 'Não', style: 'cancel' },
+        { text: 'Limpar', style: 'destructive', onPress: clearEvents },
+      ]
+    );
+  };
+
   const groups = groupByDay(events, now);
 
   return (
@@ -50,7 +62,7 @@ export default function HistoricoScreen() {
         </View>
       ))}
 
-      <BigButton label="Limpar a lista" variant="secondary" onPress={clearEvents} />
+      <BigButton label="Limpar a lista" variant="secondary" onPress={confirmClear} />
 
       {/* O aviso sai do topo: ele explicava a lista e empurrava a lista para
           fora da tela. No fim, ele fecha o assunto sem custar espaco nobre. */}

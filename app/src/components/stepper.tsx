@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
@@ -91,6 +92,8 @@ function StepButton({
   readonly disabled: boolean;
   readonly onPress: () => void;
 }) {
+  const repeat = useRepeatOnHold(onPress);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -98,6 +101,9 @@ function StepButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
+      onLongPress={repeat.start}
+      onPressOut={repeat.stop}
+      delayLongPress={400}
       style={({ pressed }) => [
         styles.stepButton,
         {
@@ -116,6 +122,59 @@ function StepButton({
       </Text>
     </Pressable>
   );
+}
+
+/** Repeticao a cada 300 ms; depois de 1,5 s de dedo apoiado, a cada 120 ms. */
+const REPEAT_MS = 300;
+const FAST_REPEAT_MS = 120;
+const ACCELERATE_AFTER_MS = 1500;
+
+/**
+ * Segurar o botao repete o passo.
+ *
+ * Ir de 5 a 200 g de 5 em 5 sao 39 toques. Isto e pressao, nao arraste: o
+ * toque simples continua funcionando igual e nada aqui exige movimento
+ * (WCAG 2.2 SC 2.5.7 segue atendido).
+ */
+function useRepeatOnHold(action: () => void) {
+  const actionRef = useRef(action);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const speedUpRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    actionRef.current = action;
+  }, [action]);
+
+  const stop = () => {
+    if (tickRef.current !== null) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    if (speedUpRef.current !== null) {
+      clearTimeout(speedUpRef.current);
+      speedUpRef.current = null;
+    }
+  };
+
+  const start = () => {
+    stop();
+    actionRef.current();
+    tickRef.current = setInterval(() => {
+      actionRef.current();
+    }, REPEAT_MS);
+    speedUpRef.current = setTimeout(() => {
+      if (tickRef.current !== null) {
+        clearInterval(tickRef.current);
+      }
+      tickRef.current = setInterval(() => {
+        actionRef.current();
+      }, FAST_REPEAT_MS);
+    }, ACCELERATE_AFTER_MS);
+  };
+
+  useEffect(() => stop, []);
+
+  return { start, stop };
 }
 
 const styles = StyleSheet.create({
