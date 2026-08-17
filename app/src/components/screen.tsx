@@ -17,8 +17,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useDensity } from '@/hooks/use-density';
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
-import { colors, fontCap, fontSizes, spacing } from '@/theme';
+import { colors, fontCap, spacing, type } from '@/theme';
 
 /** Qualquer coisa que saiba dizer onde esta na janela: `View`, `TextInput`. */
 type Measurable = {
@@ -44,10 +45,12 @@ type ScreenProps = {
   readonly children: ReactNode;
   /** True em tela com campo de digitacao: ver `useKeyboardInset`. */
   readonly avoidKeyboard?: boolean;
-  /** Barra fixa no rodape, fora da rolagem. */
+  /**
+   * Barra fixa no rodape, fora da rolagem. Fica abaixo do `ScrollView` na
+   * mesma coluna, entao nao cobre conteudo nenhum e ja respeita a area segura
+   * e a barra de abas.
+   */
   readonly footer?: ReactNode;
-  /** Espaco extra no fim da rolagem, para o conteudo nao sumir sob o rodape. */
-  readonly footerSpace?: number;
 };
 
 /** Moldura comum das telas: area segura, titulo grande e rolagem. */
@@ -56,7 +59,6 @@ export function Screen({
   children,
   avoidKeyboard = false,
   footer,
-  footerSpace = 0,
 }: ScreenProps) {
   const scrollRef = useRef<ScrollView>(null);
   const offsetRef = useRef(0);
@@ -65,6 +67,7 @@ export function Screen({
   const windowHeightRef = useRef(0);
 
   const inset = useKeyboardInset();
+  const density = useDensity();
   const { height: windowHeight } = useWindowDimensions();
 
   useEffect(() => {
@@ -111,7 +114,11 @@ export function Screen({
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: spacing.xl + footerSpace + (avoidKeyboard ? inset : 0) },
+            {
+              padding: density.padding,
+              gap: density.gap,
+              paddingBottom: spacing.xl + (avoidKeyboard ? inset : 0),
+            },
           ]}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -120,7 +127,7 @@ export function Screen({
           <Text style={styles.title} accessibilityRole="header" maxFontSizeMultiplier={fontCap.title}>
             {title}
           </Text>
-          <View style={styles.body}>{children}</View>
+          <View style={[styles.body, { gap: density.gap }]}>{children}</View>
         </ScrollView>
       </RevealContext.Provider>
       {footer}
@@ -146,8 +153,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   title: {
-    fontSize: fontSizes.title,
-    fontWeight: '700',
+    ...type.headline,
     color: colors.text,
   },
   body: {

@@ -29,7 +29,7 @@ import {
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { Dose } from '@/feeder/types';
 import { useNow } from '@/hooks/use-now';
-import { colors, control, fontCap, fontSizes, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, spacing, type } from '@/theme';
 
 export default function HomeScreen() {
   const { status, state, config, mode, gramsPerSecond, signOut, feedNow, skipNextMeal, soundSiren } =
@@ -258,8 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signOutLabel: {
-    fontSize: fontSizes.small,
-    fontWeight: '600',
+    ...type.label,
     color: colors.blue,
   },
 });

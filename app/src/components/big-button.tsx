@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { colors, control, fontCap, fontSizes, iconSize, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, iconSize, radius, spacing, type } from '@/theme';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -80,8 +80,14 @@ export function BigButton({
           <Text style={[styles.hint, { color: palette.text }]}>{hint}</Text>
         )}
       </Pressable>
+      {/* Bloqueado, o usuario perde o botao. Nao pode perder junto a
+          explicacao do que ele faria: o motivo vem primeiro, o que o botao faz
+          fica logo abaixo, mais discreto. */}
       {disabled && disabledReason !== undefined ? (
         <Text style={styles.reason}>{disabledReason}</Text>
+      ) : null}
+      {disabled && hint !== undefined ? (
+        <Text style={[styles.reason, styles.mutedHint]}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -100,7 +106,7 @@ function paletteFor(variant: Variant, disabled: boolean) {
     case 'primary':
       return {
         background: colors.green,
-        pressed: '#14602C',
+        pressed: colors.greenPressed,
         border: colors.green,
         text: colors.white,
       };
@@ -150,8 +156,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   label: {
-    fontSize: fontSizes.large,
-    fontWeight: '700',
+    ...type.title,
     textAlign: 'center',
   },
   hint: {
@@ -162,5 +167,8 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.small,
     color: colors.muted,
     textAlign: 'center',
+  },
+  mutedHint: {
+    opacity: 0.7,
   },
 });

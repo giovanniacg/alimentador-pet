@@ -1,10 +1,11 @@
 import Constants from 'expo-constants';
-import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
 import { OptionRow } from '@/components/option-row';
+import { SaveBar } from '@/components/save-bar';
 import { Screen } from '@/components/screen';
 import { Stepper } from '@/components/stepper';
 import { Toggle } from '@/components/toggle';
@@ -44,7 +45,7 @@ import { configDiff } from '@/feeder/parse';
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { ConfigPatch, FeedMode, FeederConfig } from '@/feeder/types';
 import { useNow } from '@/hooks/use-now';
-import { colors, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 const MODES: readonly FeedMode[] = ['timer', 'scale_bowl', 'scale_hopper'];
 
@@ -63,6 +64,7 @@ export default function AjustesScreen() {
   const [draft, setDraft] = useState<FeederConfig | null>(null);
   const [knownGrams, setKnownGrams] = useState(KNOWN_WEIGHT_DEFAULT);
   const [sending, setSending] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const online = isFeederOnline(status, state);
   const appVersion = Constants.expoConfig?.version ?? 'desconhecida';
@@ -87,12 +89,7 @@ export default function AjustesScreen() {
   if (config === null) {
     return (
       <Screen title="Ajustes">
-        <Card title="Ajustes do aparelho">
-          <Text style={styles.muted}>
-            Ainda não recebemos os ajustes gravados no alimentador. Assim que ele responder, tudo
-            aparece aqui.
-          </Text>
-        </Card>
+        <ConfigPlaceholder />
         <TechnicalFooter
           rtc={formatRtc(state?.rtc ?? null, now)}
           activeMode={activeMode}
@@ -167,41 +164,27 @@ export default function AjustesScreen() {
     );
   };
 
-  return (
-    <Screen title="Ajustes">
-      {pending ? (
-        <View style={styles.pendingBox} accessibilityRole="alert">
-          <Text style={styles.pendingText}>
-            Você mexeu nos ajustes. Toque em SALVAR NO ALIMENTADOR para valer de verdade.
-          </Text>
-        </View>
-      ) : null}
+  const discardDraft = () => {
+    setDraft(null);
+  };
 
-      <Card title="Modo de dosagem">
-        <Text style={styles.muted}>
-          É assim que o aparelho decide quanta ração já saiu. Sem balança, ele conta o tempo de
-          rosca girando.
-        </Text>
-        <View style={styles.options} accessibilityRole="radiogroup">
-          {MODES.map((option) => (
-            <OptionRow
-              key={option}
-              title={modeLabel(option)}
-              description={modeExplanation(option)}
-              selected={current.mode === option}
-              onPress={() => {
-                update({ mode: option });
-              }}
-            />
-          ))}
-        </View>
-        {modeChanged ? (
-          <Text style={styles.warning}>
-            O aparelho ainda está em &quot;{modeLabel(config.mode)}&quot;. A troca só acontece ao
-            salvar.
-          </Text>
-        ) : null}
-      </Card>
+  return (
+    <Screen
+      title="Ajustes"
+      footer={
+        pending ? (
+          <SaveBar
+            label="Salvar no alimentador"
+            onSave={confirmSave}
+            onDiscard={discardDraft}
+            disabled={!online || sending}
+            disabledReason={
+              sending ? 'Enviando...' : 'Só dá para salvar com o alimentador ligado.'
+            }
+          />
+        ) : null
+      }>
+      {/* O aviso de rascunho fica na barra fixa do rodape. */}
 
       <Card title="Dose rápida">
         <Text style={styles.muted}>
@@ -236,42 +219,6 @@ export default function AjustesScreen() {
         )}
       </Card>
 
-      <Card title="Motor">
-        <Text style={styles.muted}>
-          Velocidade da rosca. Mais devagar embola menos a ração; mais rápido serve antes.
-        </Text>
-        <Stepper
-          label="Velocidade"
-          value={current.rpm}
-          display={`${current.rpm} rpm`}
-          min={RPM_MIN}
-          max={RPM_MAX}
-          step={RPM_STEP}
-          unitLabel="velocidade do motor"
-          onChange={(rpm) => {
-            update({ rpm });
-          }}
-        />
-      </Card>
-
-      <Card title="Limite de segurança">
-        <Text style={styles.muted}>
-          Tempo máximo que a rosca pode girar numa única dose. Serve de freio se algo travar.
-        </Text>
-        <Stepper
-          label="Tempo máximo por dose"
-          value={current.maxSecs}
-          display={formatSeconds(current.maxSecs)}
-          min={MAX_SECS_MIN}
-          max={MAX_SECS_MAX}
-          step={MAX_SECS_STEP}
-          unitLabel="tempo máximo por dose"
-          onChange={(maxSecs) => {
-            update({ maxSecs, defaultSecs: Math.min(current.defaultSecs, maxSecs) });
-          }}
-        />
-      </Card>
-
       <Card title="Sirene">
         <Text style={styles.muted}>Um aviso sonoro antes da refeição, para chamar o bicho.</Text>
         <Toggle
@@ -297,47 +244,113 @@ export default function AjustesScreen() {
         ) : null}
       </Card>
 
-      <Card title="Gramas por segundo (estimativa)">
+      <Card title="Modo de dosagem">
         <Text style={styles.muted}>
-          Quantas gramas de ração saem em um segundo de rosca. Serve para converter tempo em peso
-          quando o horário foi criado num modo e o aparelho está em outro. É uma estimativa: se a
-          dose sair maior ou menor do que o esperado, ajuste aqui.
+          É assim que o aparelho decide quanta ração já saiu. Sem balança, ele conta o tempo de
+          rosca girando.
         </Text>
-        <Stepper
-          label="Estimativa"
-          value={current.gramsPerSecond}
-          display={formatGramsPerSecond(current.gramsPerSecond)}
-          min={G_PER_S_MIN}
-          max={G_PER_S_MAX}
-          step={G_PER_S_STEP}
-          unitLabel="gramas por segundo"
-          onChange={(gramsPerSecond) => {
-            update({ gramsPerSecond: Math.round(gramsPerSecond * 10) / 10 });
-          }}
-        />
+        <View style={styles.options} accessibilityRole="radiogroup">
+          {MODES.map((option) => (
+            <OptionRow
+              key={option}
+              title={modeLabel(option)}
+              description={modeExplanation(option)}
+              selected={current.mode === option}
+              onPress={() => {
+                update({ mode: option });
+              }}
+            />
+          ))}
+        </View>
+        {modeChanged ? (
+          <View style={styles.noticeBox} accessibilityRole="alert">
+            <Text style={styles.noticeSymbol}>!</Text>
+            <Text style={styles.noticeText}>
+              O aparelho ainda está em &quot;{modeLabel(config.mode)}&quot;. A troca só acontece ao
+              salvar.
+            </Text>
+          </View>
+        ) : null}
       </Card>
 
-      <BigButton
-        label="SALVAR NO ALIMENTADOR"
-        onPress={confirmSave}
-        disabled={!online || sending || !pending}
-        disabledReason={
-          sending
-            ? 'Enviando...'
-            : !online
-              ? 'Só dá para salvar com o alimentador ligado.'
-              : 'Nada mudou para salvar.'
-        }
-      />
+      {/* Os tres ajustes mais raros e mais arriscados ficam guardados atras de
+          um toque: a tela abre com o que se usa toda semana. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: advancedOpen }}
+        accessibilityLabel="Ajustes avançados"
+        onPress={() => {
+          setAdvancedOpen((open) => !open);
+        }}
+        style={({ pressed }) => [
+          styles.advancedToggle,
+          { backgroundColor: pressed ? colors.surface : colors.white },
+        ]}>
+        <Text style={styles.advancedLabel} maxFontSizeMultiplier={fontCap.control}>
+          Ajustes avançados
+        </Text>
+        <Text style={styles.advancedMark} maxFontSizeMultiplier={fontCap.control}>
+          {advancedOpen ? '▾' : '▸'}
+        </Text>
+      </Pressable>
 
-      {pending ? (
-        <BigButton
-          label="Desfazer mudanças"
-          variant="secondary"
-          onPress={() => {
-            setDraft(null);
-          }}
-        />
+      {advancedOpen ? (
+        <>
+          <Card title="Motor">
+            <Text style={styles.muted}>
+              Velocidade da rosca. Mais devagar embola menos a ração; mais rápido serve antes.
+            </Text>
+            <Stepper
+              label="Velocidade"
+              value={current.rpm}
+              display={`${current.rpm} rpm`}
+              min={RPM_MIN}
+              max={RPM_MAX}
+              step={RPM_STEP}
+              unitLabel="velocidade do motor"
+              onChange={(rpm) => {
+                update({ rpm });
+              }}
+            />
+          </Card>
+
+          <Card title="Limite de segurança">
+            <Text style={styles.muted}>
+              Tempo máximo que a rosca pode girar numa única dose. Serve de freio se algo travar.
+            </Text>
+            <Stepper
+              label="Tempo máximo por dose"
+              value={current.maxSecs}
+              display={formatSeconds(current.maxSecs)}
+              min={MAX_SECS_MIN}
+              max={MAX_SECS_MAX}
+              step={MAX_SECS_STEP}
+              unitLabel="tempo máximo por dose"
+              onChange={(maxSecs) => {
+                update({ maxSecs, defaultSecs: Math.min(current.defaultSecs, maxSecs) });
+              }}
+            />
+          </Card>
+
+          <Card title="Gramas por segundo">
+            <Text style={styles.muted}>
+              Quantas gramas saem em um segundo de rosca. Só importa quando um horário foi criado
+              em segundos e o aparelho está pesando em gramas.
+            </Text>
+            <Stepper
+              label="Estimativa"
+              value={current.gramsPerSecond}
+              display={formatGramsPerSecond(current.gramsPerSecond)}
+              min={G_PER_S_MIN}
+              max={G_PER_S_MAX}
+              step={G_PER_S_STEP}
+              unitLabel="gramas por segundo"
+              onChange={(gramsPerSecond) => {
+                update({ gramsPerSecond: Math.round(gramsPerSecond * 10) / 10 });
+              }}
+            />
+          </Card>
+        </>
       ) : null}
 
       {deviceIsScale ? (
@@ -396,6 +409,66 @@ export default function AjustesScreen() {
   );
 }
 
+/** Quanto tempo esperar o aparelho responder antes de assumir que deu ruim. */
+const CONFIG_WAIT_MS = 10000;
+
+/**
+ * Enquanto os ajustes nao chegam, a tela precisa dizer em qual dos tres
+ * estados esta. Carregando, vazio e erro nao podem ter a mesma cara: parado
+ * no mesmo texto por dez segundos, o app parece travado e o usuario nao tem
+ * saida nenhuma.
+ */
+function ConfigPlaceholder() {
+  const [waited, setWaited] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setWaited(true);
+    }, CONFIG_WAIT_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [attempt]);
+
+  if (!waited) {
+    return (
+      <Card title="Ajustes do aparelho">
+        <View style={styles.placeholder}>
+          <ActivityIndicator size="large" color={colors.blue} />
+          <Text style={styles.placeholderTitle} accessibilityRole="header">
+            Buscando os ajustes
+          </Text>
+          <Text style={styles.placeholderBody}>
+            Assim que o alimentador responder, tudo aparece aqui.
+          </Text>
+        </View>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Ajustes do aparelho">
+      <View style={styles.placeholder} accessibilityRole="alert">
+        <Text style={styles.placeholderSymbol}>!</Text>
+        <Text style={styles.placeholderTitle} accessibilityRole="header">
+          Não conseguimos falar com o alimentador
+        </Text>
+        <Text style={styles.placeholderBody}>Confira se ele está ligado e na tomada.</Text>
+        <BigButton
+          label="Tentar de novo"
+          variant="secondary"
+          hint="O aplicativo continua tentando sozinho enquanto esta tela estiver aberta."
+          onPress={() => {
+            setWaited(false);
+            setAttempt((current) => current + 1);
+          }}
+        />
+      </View>
+    </Card>
+  );
+}
+
 /** Rodape tecnico: o que o Giovanni olha antes de perguntar "cadê o problema". */
 function TechnicalFooter({
   rtc,
@@ -437,25 +510,73 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  warning: {
-    fontSize: fontSizes.small,
-    color: colors.amber,
-    fontWeight: '700',
-  },
   options: {
     gap: spacing.sm,
   },
-  pendingBox: {
+  /**
+   * Aviso local promovido: fundo e borda ambar carregam o alerta e o texto
+   * fica em `colors.text`. Ambar sobre branco em 16 dp era o aviso mais fraco
+   * da tela, justo o que diz que o aparelho ainda nao mudou de modo.
+   */
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     backgroundColor: colors.amberSurface,
     borderColor: colors.amber,
     borderWidth: 2,
     borderRadius: radius.md,
     padding: spacing.md,
   },
-  pendingText: {
+  noticeSymbol: {
+    fontSize: fontSizes.large,
+    fontWeight: '700',
+    color: colors.amber,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: fontSizes.body,
+    color: colors.text,
+  },
+  advancedToggle: {
+    minHeight: control.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  advancedLabel: {
+    ...type.label,
+    color: colors.text,
+  },
+  advancedMark: {
+    ...type.label,
+    color: colors.blue,
+  },
+  placeholder: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  placeholderSymbol: {
+    fontSize: fontSizes.title,
+    fontWeight: '700',
+    color: colors.red,
+  },
+  placeholderTitle: {
+    ...type.title,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  placeholderBody: {
     fontSize: fontSizes.small,
     color: colors.text,
-    fontWeight: '600',
+    textAlign: 'center',
   },
   footerLine: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 type OptionRowProps = {
   readonly title: string;
@@ -70,8 +70,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
-    fontSize: fontSizes.body,
-    fontWeight: '700',
+    ...type.bodyBold,
   },
   description: {
     fontSize: fontSizes.small,

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 type ToggleProps = {
   readonly label: string;
@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   text: {
-    fontSize: fontSizes.body,
-    fontWeight: '700',
+    ...type.bodyBold,
   },
 });

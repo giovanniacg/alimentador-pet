@@ -1,5 +1,5 @@
 import type { ConnectionStatus, Dose, FeedMode, FeederEvent, Meal, Weekday } from '@/feeder/types';
-import { isEveryDay, normalizeDays, sameDays } from '@/feeder/weekdays';
+import { isEveryDay, isWeekday, normalizeDays, sameDays } from '@/feeder/weekdays';
 
 /**
  * Texto que aparece na tela. Portugues simples, sem jargao: quem usa o app
@@ -244,12 +244,44 @@ export function formatRtc(iso: string | null, now: Date): string {
   return parseIsoDate(iso) === null ? 'não informado' : formatMoment(iso, now);
 }
 
-/** "hoje às 19:00" ou "amanhã às 07:00", conforme o relogio do celular. */
+/**
+ * "hoje às 19:00", "amanhã às 07:00" ou "na terça às 07:00".
+ *
+ * Percorre os proximos sete dias a partir de `now` e para no primeiro que
+ * esteja em `meal.days`. Comparar so a hora, como era antes, fazia uma
+ * refeicao que so acontece na segunda ser anunciada como "hoje" num sabado:
+ * o app mentia para quem confia nele para alimentar um animal.
+ */
 export function formatNextMealMoment(meal: Meal, now: Date): string {
+  const clock = formatClock(meal);
+  const days = normalizeDays(meal.days);
+  if (days.length === 0) {
+    return `às ${clock}`;
+  }
+
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const mealMinutes = meal.h * 60 + meal.m;
-  const dayLabel = mealMinutes > nowMinutes ? 'hoje' : 'amanhã';
-  return `${dayLabel} às ${formatClock(meal)}`;
+
+  for (let ahead = 0; ahead < 7; ahead += 1) {
+    const date = new Date(now.getTime() + ahead * 24 * 60 * 60 * 1000);
+    const weekday = date.getDay();
+    if (!isWeekday(weekday) || !days.includes(weekday)) {
+      continue;
+    }
+    // Hoje so vale se a hora ainda nao passou.
+    if (ahead === 0 && mealMinutes <= nowMinutes) {
+      continue;
+    }
+    if (ahead === 0) {
+      return `hoje às ${clock}`;
+    }
+    if (ahead === 1) {
+      return `amanhã às ${clock}`;
+    }
+    return `${dayText(weekday, DAY_ARTICLE)} ${dayName(weekday)} às ${clock}`;
+  }
+
+  return `às ${clock}`;
 }
 
 /** Frase do estado da conexao, ja no tom da tela. */

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
 import { DayChips } from '@/components/day-chips';
+import { SaveBar } from '@/components/save-bar';
 import { Screen } from '@/components/screen';
 import { Stepper } from '@/components/stepper';
+import { useDensity } from '@/hooks/use-density';
 import { CONFIG_DEFAULTS, GRAMS_DEFAULT, MAX_MEALS, SECS_DEFAULT } from '@/config';
 import {
   describeDose,
@@ -28,7 +32,7 @@ import { sortMeals } from '@/feeder/parse';
 import { isFeederOnline, useFeeder } from '@/feeder/provider';
 import type { Dose, FeedMode, Meal } from '@/feeder/types';
 import { ALL_DAYS, sameDays } from '@/feeder/weekdays';
-import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 type Editing = {
   /** null quando e uma refeicao nova. */
@@ -162,8 +166,35 @@ export default function AgendaScreen() {
     );
   };
 
+  const discardDraft = () => {
+    Alert.alert('Descartar as mudanças?', 'A lista volta a ser a que está gravada no aparelho.', [
+      { text: 'Não', style: 'cancel' },
+      {
+        text: 'Descartar',
+        style: 'destructive',
+        onPress: () => {
+          setDraft(null);
+        },
+      },
+    ]);
+  };
+
   return (
-    <Screen title="Horários das refeições">
+    <Screen
+      title="Horários das refeições"
+      footer={
+        pending ? (
+          <SaveBar
+            label="Salvar no alimentador"
+            onSave={confirmSave}
+            onDiscard={discardDraft}
+            disabled={!online || sending}
+            disabledReason={
+              sending ? 'Enviando...' : 'Só dá para salvar com o alimentador ligado.'
+            }
+          />
+        ) : null
+      }>
       <Card title="Gravado no alimentador">
         {schedule === null ? (
           <Text style={styles.muted}>Ainda não recebemos os horários do aparelho.</Text>
@@ -182,20 +213,11 @@ export default function AgendaScreen() {
         <Text style={styles.muted}>{modeHint(mode)}</Text>
       </Card>
 
-      {pending ? (
-        <View style={styles.pendingBox} accessibilityRole="alert">
-          <Text style={styles.pendingText}>
-            Você mexeu na lista. Toque em SALVAR NO ALIMENTADOR para valer de verdade.
-          </Text>
-        </View>
-      ) : null}
-
+      {/* O aviso de rascunho vive na barra fixa do rodape, que so aparece
+          quando ha mudanca por salvar. Repetir aqui seriam dois avisos da
+          mesma coisa. */}
       {meals.length === 0 ? (
-        <Card>
-          <Text style={styles.muted}>
-            Nenhuma refeição na lista. Toque em Adicionar refeição para criar a primeira.
-          </Text>
-        </Card>
+        <EmptySchedule onCreate={openNew} />
       ) : (
         meals.map((meal, index) => (
           <MealRow
@@ -212,26 +234,16 @@ export default function AgendaScreen() {
         ))
       )}
 
-      <BigButton
-        label="Adicionar refeição"
-        variant="secondary"
-        onPress={openNew}
-        disabled={meals.length >= MAX_MEALS}
-        disabledReason={`O alimentador guarda no máximo ${MAX_MEALS} refeições.`}
-      />
-
-      <BigButton
-        label="SALVAR NO ALIMENTADOR"
-        onPress={confirmSave}
-        disabled={!online || sending || !pending}
-        disabledReason={
-          sending
-            ? 'Enviando...'
-            : !online
-              ? 'Só dá para salvar com o alimentador ligado.'
-              : 'Nada mudou para salvar.'
-        }
-      />
+      {meals.length === 0 ? null : (
+        <BigButton
+          label="Adicionar refeição"
+          variant="secondary"
+          icon="add"
+          onPress={openNew}
+          disabled={meals.length >= MAX_MEALS}
+          disabledReason={`O alimentador guarda no máximo ${MAX_MEALS} refeições.`}
+        />
+      )}
 
       <MealEditor
         editing={editing}
@@ -244,6 +256,26 @@ export default function AgendaScreen() {
         onConfirm={commitEditing}
       />
     </Screen>
+  );
+}
+
+/**
+ * Lista vazia e onboarding, nao aviso de erro: diz o que a tela faz e ja traz
+ * a proxima acao dentro do proprio bloco.
+ */
+function EmptySchedule({ onCreate }: { readonly onCreate: () => void }) {
+  return (
+    <View style={styles.empty}>
+      <MaterialIcons name="schedule" size={40} color={colors.muted} />
+      <Text style={styles.emptyTitle} accessibilityRole="header">
+        Nenhum horário programado
+      </Text>
+      <Text style={styles.emptyBody}>
+        O alimentador só serve nos horários que você criar aqui. Cada horário tem hora, quantidade
+        e dias da semana.
+      </Text>
+      <BigButton label="Criar o primeiro horário" icon="add" onPress={onCreate} />
+    </View>
   );
 }
 
@@ -273,8 +305,12 @@ function MealRow({
   readonly onEdit: () => void;
   readonly onRemove: () => void;
 }) {
+  const { compact } = useDensity();
+
   return (
-    <View style={styles.row}>
+    // Com fonte grande, "07:00" e "Todos os dias" nao dividem a linha com 190
+    // dp de botao: a linha vira coluna e os botoes passam para baixo.
+    <View style={[styles.row, compact ? styles.rowStacked : null]}>
       <View style={styles.rowInfo}>
         <Text style={styles.rowClock} maxFontSizeMultiplier={fontCap.display}>
           {formatClock(meal)}
@@ -282,17 +318,23 @@ function MealRow({
         <Text style={styles.rowDose}>{describeDose(dose)}</Text>
         <Text style={styles.rowDays}>{formatDays(meal.days)}</Text>
       </View>
-      <RowButton
-        label="Mudar"
-        accessibilityLabel={`Mudar refeição das ${formatClock(meal)}`}
-        onPress={onEdit}
-      />
-      <RowButton
-        label="Apagar"
-        danger
-        accessibilityLabel={`Apagar refeição das ${formatClock(meal)}`}
-        onPress={onRemove}
-      />
+      {/* 24 dp entre mudar e apagar, e o vermelho cheio so no toque: acao
+          destrutiva colada na comum convida o toque errado. */}
+      <View style={[styles.rowActions, compact ? styles.rowActionsStacked : null]}>
+        <RowButton
+          label="Mudar"
+          accessibilityLabel={`Mudar refeição das ${formatClock(meal)}`}
+          onPress={onEdit}
+          grow={compact}
+        />
+        <RowButton
+          label="Apagar"
+          danger
+          accessibilityLabel={`Apagar refeição das ${formatClock(meal)}`}
+          onPress={onRemove}
+          grow={compact}
+        />
+      </View>
     </View>
   );
 }
@@ -302,11 +344,13 @@ function RowButton({
   accessibilityLabel,
   onPress,
   danger = false,
+  grow = false,
 }: {
   readonly label: string;
   readonly accessibilityLabel: string;
   readonly onPress: () => void;
   readonly danger?: boolean;
+  readonly grow?: boolean;
 }) {
   const tone = danger ? colors.red : colors.blue;
   return (
@@ -316,7 +360,13 @@ function RowButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.rowButton,
-        { borderColor: tone, backgroundColor: pressed ? colors.surface : colors.white },
+        grow ? styles.rowButtonGrow : null,
+        {
+          // O destrutivo so acende em vermelho quando tocado; em repouso a
+          // borda e neutra e quem sinaliza e o texto.
+          borderColor: danger && !pressed ? colors.border : tone,
+          backgroundColor: pressed ? (danger ? colors.redSurface : colors.surface) : colors.white,
+        },
       ]}>
       <Text style={[styles.rowButtonText, { color: tone }]} maxFontSizeMultiplier={fontCap.control}>
         {label}
@@ -441,34 +491,51 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.muted,
   },
-  pendingBox: {
-    backgroundColor: colors.amberSurface,
-    borderColor: colors.amber,
+  empty: {
+    alignItems: 'center',
+    gap: spacing.md,
     borderWidth: 2,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    backgroundColor: colors.white,
   },
-  pendingText: {
+  emptyTitle: {
+    ...type.title,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  emptyBody: {
     fontSize: fontSizes.small,
     color: colors.text,
-    fontWeight: '600',
+    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.lg,
     borderWidth: 2,
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.md,
     backgroundColor: colors.white,
   },
+  rowStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
   rowInfo: {
     flex: 1,
   },
+  rowActions: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  rowActionsStacked: {
+    alignSelf: 'stretch',
+  },
   rowClock: {
-    fontSize: fontSizes.title,
-    fontWeight: '700',
+    ...type.headline,
     color: colors.text,
   },
   rowDose: {
@@ -495,13 +562,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
+  rowButtonGrow: {
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
   rowButtonText: {
-    fontSize: fontSizes.body,
-    fontWeight: '700',
+    ...type.bodyBold,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     padding: spacing.md,
   },

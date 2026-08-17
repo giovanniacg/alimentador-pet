@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { colors, control, fontCap, fontSizes, radius, spacing, type } from '@/theme';
 
 type StepperProps = {
   readonly label: string;
@@ -142,15 +142,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepSymbol: {
-    fontSize: fontSizes.title,
-    fontWeight: '700',
-    lineHeight: fontSizes.title + 4,
+    ...type.headline,
   },
   value: {
+    ...type.headline,
     flex: 1,
     textAlign: 'center',
-    fontSize: fontSizes.title,
-    fontWeight: '700',
     color: colors.text,
   },
 });

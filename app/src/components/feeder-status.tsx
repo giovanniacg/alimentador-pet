@@ -84,7 +84,7 @@ export function FeederStatusPanel({
       </Text>
       <View style={styles.texts}>
         {/* Conteudo de leitura: escala livre, sem cap (WCAG 2.2 SC 1.4.4). */}
-        <Text style={[styles.headline, { color: palette.color }]}>{view.headline}</Text>
+        <Text style={styles.headline}>{view.headline}</Text>
         <Text style={styles.detail}>{view.detail}</Text>
       </View>
     </View>
@@ -123,9 +123,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
+  /**
+   * Texto do estado em `colors.text`, nao no tom do estado: verde #1B7F3B
+   * sobre o verde claro do painel da 4.41:1, que so passa por ser texto
+   * grande. Com `text` sao 16.4:1 sobre o verde claro, 15.5:1 sobre o
+   * vermelho e 15.9:1 sobre o ambar. A cor do estado continua no glifo (40 dp)
+   * e na borda de 2 dp, onde o limiar e 3:1.
+   */
   headline: {
     fontSize: fontSizes.large,
     fontWeight: '700',
+    color: colors.text,
   },
   detail: {
     fontSize: fontSizes.small,

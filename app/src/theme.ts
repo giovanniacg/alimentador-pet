@@ -18,6 +18,7 @@ export const colors = {
   muted: '#4A4A4A',
   green: '#1B7F3B',
   greenSurface: '#E4F3E9',
+  greenPressed: '#14602C',
   red: '#B3261E',
   redSurface: '#FBE9E7',
   amber: '#8A5A00',
@@ -27,6 +28,8 @@ export const colors = {
   disabled: '#6B7280',
   disabledSurface: '#E3E5E8',
   white: '#FFFFFF',
+  /** Fundo escurecido atras de um modal. */
+  scrim: 'rgba(0,0,0,0.55)',
 } as const;
 
 export const spacing = {
@@ -47,6 +50,27 @@ export const fontSizes = {
   display: 40,
   /** @deprecated Use `fontSizes.display`, e so em glifo de status. */
   huge: 40,
+} as const;
+
+/**
+ * Tipografia por PAPEL, com entrelinha junto. Mapeia 1:1 os tamanhos de
+ * `fontSizes` (small->label, body->body, large->title, title->headline,
+ * display->display), entao nada muda de tamanho: so ganha `lineHeight` e um
+ * nome que diz para que serve.
+ *
+ * Cuidado no React Native: `lineHeight` numerico NAO escala com o `fontScale`
+ * do sistema. Por isso ele so aparece nos papeis que tem teto de fonte
+ * (rotulo de controle, titulo, display). Em texto de conteudo, que escala sem
+ * teto, `lineHeight` fixo apertaria a entrelinha e sobreporia as linhas: la
+ * ele nao e definido de proposito.
+ */
+export const type = {
+  label: { fontSize: 16, lineHeight: 24, fontWeight: '600' },
+  body: { fontSize: 20, lineHeight: 30, fontWeight: '400' },
+  bodyBold: { fontSize: 20, lineHeight: 30, fontWeight: '700' },
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700' },
+  headline: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
+  display: { fontSize: 40, lineHeight: 46, fontWeight: '700' },
 } as const;
 
 export const radius = {

@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { dayLetter, dayName } from '@/feeder/format';
 import type { Weekday } from '@/feeder/types';
-import { ALL_DAYS, hasDay, toggleDay } from '@/feeder/weekdays';
-import { colors, control, fontCap, fontSizes, radius, spacing } from '@/theme';
+import { ALL_DAYS, hasDay, sameDays, toggleDay } from '@/feeder/weekdays';
+import { colors, control, fontCap, radius, spacing, type } from '@/theme';
 
 type DayChipsProps = {
   readonly label: string;
@@ -24,10 +24,48 @@ type DayChipsProps = {
  * Quem garante o alvo de toque aqui e a ALTURA (56 dp), nao a largura: mesmo
  * numa tela de 320 dp o chip sai com ~33x56, bem acima dos 24x24 do SC 2.5.8.
  */
+/**
+ * Conjuntos nomeados que o app ja usava para LER a semana ("Seg a sex"), agora
+ * tambem para ESCOLHER. Marcar cinco dias custava cinco toques em alvos
+ * estreitos; aqui custa um. Reconhecer em vez de lembrar.
+ */
+const DAY_SETS: readonly { readonly label: string; readonly days: readonly Weekday[] }[] = [
+  { label: 'Todos os dias', days: ALL_DAYS },
+  { label: 'Seg a sex', days: [1, 2, 3, 4, 5] },
+  { label: 'Sáb e dom', days: [0, 6] },
+];
+
 export function DayChips({ label, days, onChange }: DayChipsProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
+      <View style={styles.shortcuts}>
+        {DAY_SETS.map((set) => {
+          const selected = sameDays(days, set.days);
+          return (
+            <Pressable
+              key={set.label}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={set.label}
+              onPress={() => {
+                onChange(set.days);
+              }}
+              style={({ pressed }) => [
+                styles.shortcut,
+                {
+                  backgroundColor: selected || pressed ? colors.blueSurface : colors.white,
+                  borderColor: colors.blue,
+                  borderWidth: selected ? 3 : 2,
+                },
+              ]}>
+              <Text style={styles.shortcutLabel} maxFontSizeMultiplier={fontCap.control}>
+                {set.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={styles.row} accessibilityRole="none">
         {ALL_DAYS.map((day) => {
           const selected = hasDay(days, day);
@@ -59,8 +97,8 @@ export function DayChips({ label, days, onChange }: DayChipsProps) {
               </Text>
               <Text
                 style={[styles.mark, { color: selected ? colors.white : colors.muted }]}
-                maxFontSizeMultiplier={fontCap.control}>
-                {selected ? '✓' : '−'}
+                maxFontSizeMultiplier={1.15}>
+                {selected ? '✓' : '·'}
               </Text>
             </Pressable>
           );
@@ -75,9 +113,28 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    fontSize: fontSizes.small,
+    ...type.label,
     color: colors.muted,
-    fontWeight: '600',
+  },
+  shortcuts: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  shortcut: {
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: control.sm,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm,
+  },
+  shortcutLabel: {
+    ...type.label,
+    color: colors.blue,
+    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -99,12 +156,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: 2,
   },
+  // Alturas apertadas de proposito: com cap 1.3 o conteudo do chip chega a
+  // ~60 dp, contra os 56 de piso. Como a altura e `minHeight`, a linha inteira
+  // acompanha em vez de estourar.
   letter: {
-    fontSize: fontSizes.body,
+    fontSize: 20,
+    lineHeight: 22,
     fontWeight: '700',
   },
   mark: {
-    fontSize: fontSizes.small,
+    fontSize: 14,
+    lineHeight: 16,
     fontWeight: '700',
   },
 });
