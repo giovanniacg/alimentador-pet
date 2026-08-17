@@ -6,6 +6,7 @@
 user feeder-sp01
 topic write feeder/sp01/state
 topic write feeder/sp01/schedule
+topic write feeder/sp01/config
 topic write feeder/sp01/event
 topic read  feeder/sp01/cmd/#
 
@@ -14,5 +15,6 @@ topic read  feeder/sp01/cmd/#
 user app-giovanni
 topic read  feeder/+/state
 topic read  feeder/+/schedule
+topic read  feeder/+/config
 topic read  feeder/+/event
 topic write feeder/+/cmd/#
