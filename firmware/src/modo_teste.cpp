@@ -42,12 +42,13 @@ void testeLed() {
 // que tambem separa o diagnostico: buzzer ATIVO apita no teste 1 (corrente
 // continua), buzzer PASSIVO apita no teste 2 (onda quadrada de 2 kHz).
 void testeBuzzer() {
-  Serial.println("[BUZZER] teste 1: corrente continua (buzzer ATIVO apita aqui)...");
-  for (int i = 0; i < 3; i++) {
+  Serial.println("[BUZZER] teste 1: corrente continua, 2x de 2 segundos");
+  Serial.println("[BUZZER] (buzzer ativo/sirene apita aqui; os de melodia demoram a engatar)...");
+  for (int i = 0; i < 2; i++) {
     digitalWrite(PIN_BUZZER, HIGH);
-    delay(200);
+    delay(2000);
     digitalWrite(PIN_BUZZER, LOW);
-    delay(200);
+    delay(800);
   }
   delay(400);
   Serial.println("[BUZZER] teste 2: onda de 2 kHz (buzzer PASSIVO apita aqui)...");
