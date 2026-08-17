@@ -1,5 +1,6 @@
 #include "agenda.h"
 #include "relogio.h"
+#include "config.h"
 #include <Preferences.h>
 
 static Refeicao refeicoes[MAX_REFEICOES];
@@ -25,7 +26,9 @@ static void salvar() {
   Preferences nvs;
   nvs.begin(NVS_NAMESPACE, false);
   nvs.putUChar("n_ref", quantidade);
-  nvs.putBytes("refeicoes", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
+  // Chave "refeicoes2": o layout do struct mudou quando a refeicao ganhou o
+  // campo segundos. Chave nova evita ler lixo de um firmware anterior.
+  nvs.putBytes("refeicoes2", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
   nvs.putBool("skip", skipProxima);
   nvs.putUChar("dia_masc", diaDaMascara);
   nvs.putUChar("masc", mascaraServidas);
@@ -39,7 +42,7 @@ void agendaIniciar() {
   skipProxima   = nvs.getBool("skip", false);
   diaDaMascara    = nvs.getUChar("dia_masc", 0);
   mascaraServidas = nvs.getUChar("masc", 0);
-  size_t lidos  = nvs.getBytes("refeicoes", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
+  size_t lidos  = nvs.getBytes("refeicoes2", refeicoes, sizeof(Refeicao) * MAX_REFEICOES);
   nvs.end();
 
   if (lidos != sizeof(Refeicao) * MAX_REFEICOES || quantidade > MAX_REFEICOES) {
@@ -59,8 +62,19 @@ bool agendaDefinir(const Refeicao *lista, uint8_t n) {
       logf("[agenda] recusada: hora invalida %u:%u", lista[i].hora, lista[i].minuto);
       return false;
     }
-    if (lista[i].gramas == 0 || lista[i].gramas > 500) {
+    // Cada refeicao precisa trazer PELO MENOS um dos dois: secs (modo timer)
+    // ou grams (modos scale). O que faltar sai por conversao na hora de dosar.
+    if (lista[i].gramas == 0 && lista[i].segundos == 0) {
+      logf("[agenda] recusada: refeicao %u sem secs nem grams", i);
+      return false;
+    }
+    if (lista[i].gramas > 500) {
       logf("[agenda] recusada: gramas fora da faixa (%u)", lista[i].gramas);
+      return false;
+    }
+    if (lista[i].segundos > configAtual().maxSecs) {
+      logf("[agenda] recusada: secs acima do teto de %u s (%u)",
+           configAtual().maxSecs, lista[i].segundos);
       return false;
     }
   }
@@ -125,13 +139,17 @@ void agendaSetSkipProxima(bool v) {
   salvar();
 }
 
+// Espelho do que esta gravado, no mesmo formato do cmd/schedule: cada meal
+// sai com os campos que foram REALMENTE informados. Nao inventa o que faltou,
+// porque a conversao depende do g_per_s vigente e pode mudar depois.
 String agendaJson() {
   String s = "{\"meals\":[";
   for (uint8_t i = 0; i < quantidade; i++) {
     if (i) s += ',';
-    s += "{\"h\":";      s += refeicoes[i].hora;
-    s += ",\"m\":";      s += refeicoes[i].minuto;
-    s += ",\"grams\":";  s += refeicoes[i].gramas;
+    s += "{\"h\":";  s += refeicoes[i].hora;
+    s += ",\"m\":";  s += refeicoes[i].minuto;
+    if (refeicoes[i].segundos > 0) { s += ",\"secs\":";  s += refeicoes[i].segundos; }
+    if (refeicoes[i].gramas   > 0) { s += ",\"grams\":"; s += refeicoes[i].gramas; }
     s += '}';
   }
   s += "]}";

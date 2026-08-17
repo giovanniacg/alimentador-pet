@@ -1,5 +1,6 @@
 #include "rede.h"
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include "mqtt_client.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -92,13 +93,32 @@ static void mqttIniciar() {
 
 // ---------------------------------------------------------------- WiFi
 
+// Duas redes cadastradas: a casa dos pais (onde o aparelho vive) e a bancada
+// de quem o programou, a 1000 km dali. O WiFiMulti varre e fica na que
+// aparecer, sem ninguem precisar regravar firmware ao mudar de lugar.
+static WiFiMulti wifiMulti;
+static bool redesCadastradas = false;
+
+static void cadastrarRedes() {
+  if (redesCadastradas) return;
+  if (strlen(WIFI_SSID)  > 0) { wifiMulti.addAP(WIFI_SSID,  WIFI_PASS);  logf("[wifi] rede 1: %s", WIFI_SSID); }
+  if (strlen(WIFI_SSID2) > 0) { wifiMulti.addAP(WIFI_SSID2, WIFI_PASS2); logf("[wifi] rede 2: %s", WIFI_SSID2); }
+  redesCadastradas = true;
+}
+
+static bool temAlgumaRede() {
+  return strlen(WIFI_SSID) > 0 || strlen(WIFI_SSID2) > 0;
+}
+
 static void conectarWifi() {
-  if (strlen(WIFI_SSID) == 0) return;
-  logf("[wifi] conectando em %s", WIFI_SSID);
+  if (!temAlgumaRede()) return;
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  cadastrarRedes();
+  // Timeout curto: alimentar no horario certo importa mais que estar online,
+  // entao o loop principal nao pode ficar preso aqui.
+  wifiMulti.run(6000);
 }
 
 // ---------------------------------------------------------------- API
@@ -121,7 +141,8 @@ void redeLoop() {
   if (agora && !wifiOk) {
     wifiOk = true;
     wifiNovo = true;
-    logf("[wifi] conectado | ip=%s rssi=%d", WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    logf("[wifi] conectado em %s | ip=%s rssi=%d",
+         WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), WiFi.RSSI());
     mqttIniciar();
   } else if (!agora && wifiOk) {
     wifiOk = false;
@@ -133,7 +154,6 @@ void redeLoop() {
   // continuar alimentando mesmo com o roteador desligado.
   if (!agora && millis() - ultimaTentativaWifi > 20000) {
     ultimaTentativaWifi = millis();
-    WiFi.disconnect();
     conectarWifi();
   }
 }

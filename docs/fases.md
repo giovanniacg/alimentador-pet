@@ -16,15 +16,52 @@ pio device monitor -b 115200
 Ele cobre **em código** as fases 04, 05 e 06 inteiras. Nenhuma delas está fechada:
 fechar exige o teste de bancada descrito em cada uma, com ração e motor de verdade.
 
+### Decisão da v1: sem célula de carga, dosagem por tempo
+
+O aparelho vai operar a 1000 km de quem o programou, na casa dos pais, com público
+não técnico e ninguém para mexer em fio. Isso mudou duas coisas de fundo:
+
+1. **A v1 roda sem HX711.** O modo de dosagem padrão é `timer`: a rosca gira N
+   segundos e pronto. Se o módulo não responder no boot, o firmware segue normal,
+   avisa no log e publica `scale_g: null`. A balança deixou de ser pré-requisito e
+   virou upgrade opcional.
+2. **Tudo que muda comportamento é configurável por MQTT**, sem regravar firmware:
+   modo de dosagem, RPM da rosca, tamanho da dose padrão, teto de segurança por
+   dose, sirene e duração do aviso, e o fator gramas/segundo. Tudo persiste na NVS
+   e é espelhado retained em `feeder/<id>/config`. Contrato em `docs/mqtt.md`.
+
+Os três modos convivem no mesmo binário (`final/dosagem.cpp`):
+
+| Modo | Como dosa | Detecta ração acabando |
+|---|---|---|
+| `timer` | gira a rosca por N segundos, não pesa nada | **não** (não há como saber) |
+| `scale_bowl` | balança sob o prato, dosa até o peso SUBIR o alvo | sim |
+| `scale_hopper` | balança sob o reservatório, dosa até o peso DESCER o alvo | sim |
+
+Pedido em `secs` num modo scale (ou em `grams` no modo timer) é convertido pelo
+`g_per_s` da config, e o evento sai marcado com `converted: true`. Trocar para um
+modo scale sem HX711 presente é **recusado** com evento explicativo, em vez de
+deixar o aparelho incapaz de dosar.
+
+Outras duas mudanças que vieram junto:
+
+- **Sirene, não buzzer musical.** A peça é um módulo ativo de 12 V que apita
+  sozinho com corrente contínua. Nada de `tone()` (o LEDC do core reclama do canal
+  e simplesmente não toca): o acionamento é `digitalWrite` HIGH no GPIO 17 segurando
+  pelo tempo configurado. Os avisos curtos são pulsos de 300 ms.
+- **Duas redes WiFi** via `WiFiMulti` (`WIFI_SSID`/`WIFI_SSID2` no `secrets.h`), para
+  o aparelho sair da bancada e chegar na casa onde vai morar sem regravação.
+
 | Fase | Coberto pelo `env:final` | Falta |
 |---|---|---|
-| 04 Dosagem | `final/dosagem.cpp`: incrementos de 1/4 de volta, pesagem entre eles, recuo de meia volta ao travar, 3 recuos e desiste, timeout de 60 s, buzzer no erro | medir gramas por volta e conferir 80 g pedidos = 80 g entregues |
-| 05 Autonomia | `final/agenda.cpp` (8 refeições na NVS), `final/relogio.cpp` (DS3231 + NTP com fuso fixo `<-03>3`), botões, buzzer, marca a refeição na NVS antes de dosar | teste de crueldade: cortar a tomada no meio do dia |
-| 06 Broker | `final/rede.cpp`: esp-mqtt sobre `wss://host:443`, keepalive 45 s, LWT retained, reconexão automática, CA bundle do próprio core | subir o Mosquitto atrás do Traefik e alimentar pelo 4G |
+| 04 Dosagem | `final/dosagem.cpp`: modo timer (rosca por tempo, rampa com RPM da config) e modos scale (incrementos de 1/4 de volta, pesagem entre eles, recuo de meia volta ao travar, 3 recuos e desiste, teto `max_secs`, sirene no erro) | medir na bancada **quantos gramas por segundo** a rosca entrega e gravar isso em `g_per_s`; só depois disso a conversão entre modos vale alguma coisa |
+| 05 Autonomia | `final/agenda.cpp` (8 refeições na NVS, cada uma com `secs` ou `grams`), `final/relogio.cpp` (DS3231 + NTP com fuso fixo `<-03>3`), botões, sirene, marca a refeição na NVS antes de dosar | teste de crueldade: cortar a tomada no meio do dia |
+| 06 Broker | `final/rede.cpp`: esp-mqtt sobre `wss://host:443`, keepalive 45 s, LWT retained, reconexão automática, CA bundle do próprio core, WiFiMulti com duas redes | subir o Mosquitto atrás do Traefik e alimentar pelo 4G |
 
-Pendências conhecidas: o fator de calibração da balança precisa ser medido na peça
-real (`c <gramas>` na serial) e o `PULSOS_INCREMENTO` da dosagem pode querer ajuste
-depois que a rosca mostrar quantos gramas ela entrega por volta.
+Pendências conhecidas: medir `g_per_s` com ração de verdade (é o número que sustenta
+a dosagem por tempo inteira); conferir na bancada se o RPM default de 20 vence a
+ração sem travar; e, se e quando a célula de carga entrar, medir o fator de
+calibração na peça real (`c <gramas>` na serial).
 
 ---
 
@@ -91,6 +128,11 @@ com os 12 V presentes e tudo parecendo certo.
 
 ## Fase 03 — Balança e calibração
 
+> **Opcional na v1.** A v1 opera sem célula de carga, no modo `timer`. Esta fase virou
+> upgrade: fecha quando a balança entrar, e o modo scale é ligado por MQTT, sem
+> regravar firmware. O que **não** é opcional é medir os gramas por volta da rosca:
+> sem esse número, `g_per_s` é chute e a dosagem por tempo não tem escala.
+
 **Fecha quando:** a leitura bate com um peso conhecido dentro de ±2 g.
 
 - Ligar o HX711 em 3,3 V e obter leitura bruta estável
@@ -103,9 +145,18 @@ dele, o resto é software. Meça pelo menos cinco voltas e tire a média.
 
 ---
 
-## Fase 04 — Dosagem em malha fechada
+## Fase 04 — Dosagem
 
-**Fecha quando:** pedir 80 g entrega 80 g, e a rosca travada é detectada em 5 s.
+**Fecha na v1 quando:** girar 8 s entrega uma porção repetível (mesmo tempo, mesma
+quantidade dentro de uma margem aceitável para um cachorro), com `g_per_s` medido e
+gravado na config.
+
+- Medir gramas por segundo de rosca girando, com o funil cheio e com o funil pela metade
+- Ajustar `rpm` por MQTT até achar a velocidade que não trava a ração
+- Conferir que o teto `max_secs` corta uma dose que passou do ponto
+
+**Fecha na v2 (com célula) quando:** pedir 80 g entrega 80 g, e a rosca travada é
+detectada em 5 s.
 
 - Girar em incrementos (por exemplo, um quarto de volta), pesando entre eles, até o alvo
 - Detectar entupimento: girou e o peso não subiu, logo travou
@@ -113,7 +164,9 @@ dele, o resto é software. Meça pelo menos cinco voltas e tire a média.
 - Após três falhas, acionar o buzzer e registrar o erro
 
 A malha fechada é o que diferencia esse alimentador de um temporizador: ele sabe quanto
-realmente caiu, não quanto deveria ter caído.
+realmente caiu, não quanto deveria ter caído. A v1 abre mão disso de propósito, em troca
+de funcionar sem nenhuma peça a mais e sem ninguém por perto para consertar. O caminho de
+volta está pronto no firmware: basta ligar a célula e mandar um `cmd/config`.
 
 ---
 

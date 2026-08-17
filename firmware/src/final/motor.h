@@ -14,7 +14,18 @@ void motorIniciar();
 void motorHabilitar(bool ligado);
 bool motorHabilitado();
 
+// Velocidade de cruzeiro em RPM do eixo, vinda da config remota (5..60).
+// So mexe no PATAMAR: o arranque lento validado na bancada continua igual,
+// porque e ele que evita o motor perder sincronismo e vibrar parado.
+void motorSetRpm(uint8_t rpm);
+uint8_t motorRpm();
+
 // Gira um lote de pulsos com rampa interna. Bloqueia enquanto gira: e curto
 // (fracao de volta) e e o trabalho real do aparelho.
 // horario = true entrega racao; false e o recuo de desentupimento.
 void motorGirar(uint32_t pulsos, bool horario);
+
+// Gira pelo TEMPO pedido, com a mesma rampa. E o coracao do modo timer: sem
+// balanca, o unico jeito de dosar e contar segundos de rosca girando.
+// Devolve os segundos realmente girados.
+float motorGirarPorTempo(float segundos, bool horario);
