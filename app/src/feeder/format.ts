@@ -218,6 +218,8 @@ export function eventLabel(event: FeederEvent): string {
         : 'Não conseguiu servir a comida';
     case 'button_feed':
       return 'Alguém apertou o botão do aparelho';
+    case 'siren':
+      return event.secs === null ? 'Sirene tocada' : `Sirene tocada (${formatSeconds(event.secs)})`;
     case 'config_changed':
       return 'Os ajustes do aparelho foram alterados';
     case 'unknown':
@@ -238,6 +240,8 @@ export function eventSymbol(event: FeederEvent): string {
       return '!';
     case 'button_feed':
       return '•';
+    case 'siren':
+      return '♪';
     case 'config_changed':
       return '⚙';
     case 'unknown':

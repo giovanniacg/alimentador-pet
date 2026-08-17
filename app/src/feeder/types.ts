@@ -81,6 +81,7 @@ export type FeederEvent =
   | { readonly kind: 'meal_done'; readonly dose: Dose | null }
   | { readonly kind: 'meal_failed'; readonly reason: string | null }
   | { readonly kind: 'button_feed' }
+  | { readonly kind: 'siren'; readonly secs: number | null }
   | { readonly kind: 'config_changed' }
   | { readonly kind: 'unknown'; readonly raw: string };
 

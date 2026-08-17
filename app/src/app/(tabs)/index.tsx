@@ -15,6 +15,7 @@ import {
   formatGrams,
   formatLastMeal,
   formatNextMealMoment,
+  formatSeconds,
   scaleReadingLabel,
 } from '@/feeder/format';
 import {
@@ -31,7 +32,7 @@ import { useNow } from '@/hooks/use-now';
 import { colors, fontSizes, spacing } from '@/theme';
 
 export default function HomeScreen() {
-  const { status, state, config, mode, gramsPerSecond, signOut, feedNow, skipNextMeal } =
+  const { status, state, config, mode, gramsPerSecond, signOut, feedNow, skipNextMeal, soundSiren } =
     useFeeder();
   const now = useNow();
   /** `chosen === null` significa "usar a dose rápida gravada no aparelho". */
@@ -94,6 +95,30 @@ export default function HomeScreen() {
           text: 'Sim, pular',
           onPress: () => {
             runCommand(() => skipNextMeal(), 'A próxima refeição foi cancelada.');
+          },
+        },
+      ]
+    );
+  };
+
+  // A sirene apita dentro da casa dos pais: confirma antes, sempre, e diz
+  // quanto tempo vai durar.
+  const sirenSecs = config?.sirenSecs ?? null;
+  const confirmSiren = () => {
+    Alert.alert(
+      'Tocar a sirene agora?',
+      sirenSecs === null
+        ? 'O aparelho vai apitar na casa, sem servir comida.'
+        : `O aparelho vai apitar por ${formatSeconds(sirenSecs)} na casa, sem servir comida.`,
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim, tocar',
+          onPress: () => {
+            runCommand(
+              () => soundSiren(sirenSecs ?? undefined),
+              'A sirene tocou no alimentador.'
+            );
           },
         },
       ]
@@ -167,6 +192,16 @@ export default function HomeScreen() {
         label="Pular próxima refeição"
         variant="danger"
         onPress={confirmSkip}
+        disabled={!online || sending}
+        disabledReason={sending ? 'Enviando...' : blockedReason}
+      />
+
+      <BigButton
+        label="Tocar sirene"
+        variant="secondary"
+        icon="notifications-active"
+        hint="Chama o bicho sem servir comida"
+        onPress={confirmSiren}
         disabled={!online || sending}
         disabledReason={sending ? 'Enviando...' : blockedReason}
       />

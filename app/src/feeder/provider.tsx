@@ -17,8 +17,11 @@ import {
   MAX_EVENTS_IN_MEMORY,
   RECONNECT_MAX_MS,
   RECONNECT_MIN_MS,
+  SIREN_SECS_MAX,
+  SIREN_SECS_MIN,
 } from '@/config';
 import { clearCredentials, loadCredentials, saveCredentials } from '@/feeder/credentials';
+import { clamp, doseUnitForMode } from '@/feeder/mode';
 import {
   configCommandPayload,
   dosePayload,
@@ -73,6 +76,8 @@ type FeederContextValue = {
   saveSchedule(meals: readonly Meal[]): Promise<void>;
   /** Publica so os campos alterados em `cmd/config`. */
   saveConfig(patch: ConfigPatch): Promise<void>;
+  /** Toca so a sirene, sem dosar. Sem `secs`, vale o `siren_secs` da config. */
+  soundSiren(secs?: number): Promise<void>;
   tare(): Promise<void>;
   calibrate(knownGrams: number): Promise<void>;
   clearEvents(): void;
@@ -139,6 +144,14 @@ export function FeederProvider({ children }: { children: ReactNode }) {
 
   const clientRef = useRef<MqttClient | null>(null);
   const eventSeq = useRef(0);
+  /**
+   * Ultimo modo conhecido, para desempatar payload que traga `secs` E `grams`
+   * (docs/mqtt.md v2: vale o campo do modo ativo). Fica em ref porque quem
+   * precisa dele e o callback de mensagem, nao o render. Se o `schedule`
+   * chegar antes do `state`, o desempate cai em `timer`, o default da v1.
+   */
+  const stateModeRef = useRef<FeedMode | null>(null);
+  const configModeRef = useRef<FeedMode | null>(null);
 
   // Auto-login: le o que ficou guardado no expo-secure-store.
   useEffect(() => {
@@ -243,18 +256,26 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    const preferredUnit = () =>
+      doseUnitForMode(stateModeRef.current ?? configModeRef.current ?? CONFIG_DEFAULTS.mode);
+
     client.on('message', (topic: string, payload: { toString(): string }) => {
       const raw = payload.toString();
       if (topic === TOPICS.state) {
-        patch((current) => ({ ...current, state: parseState(raw) }));
+        const parsed = parseState(raw);
+        stateModeRef.current = parsed?.mode ?? null;
+        patch((current) => ({ ...current, state: parsed }));
         return;
       }
       if (topic === TOPICS.schedule) {
-        patch((current) => ({ ...current, schedule: parseSchedule(raw) }));
+        const meals = parseSchedule(raw, preferredUnit());
+        patch((current) => ({ ...current, schedule: meals }));
         return;
       }
       if (topic === TOPICS.config) {
-        patch((current) => ({ ...current, config: parseConfig(raw) }));
+        const parsed = parseConfig(raw);
+        configModeRef.current = parsed?.mode ?? null;
+        patch((current) => ({ ...current, config: parsed }));
         return;
       }
       if (topic === TOPICS.event) {
@@ -262,7 +283,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
         const entry: FeederEventEntry = {
           id: `${Date.now()}-${eventSeq.current}`,
           receivedAt: new Date(),
-          event: parseEvent(raw),
+          event: parseEvent(raw, preferredUnit()),
         };
         setEvents((current) => [entry, ...current].slice(0, MAX_EVENTS_IN_MEMORY));
       }
@@ -328,6 +349,17 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     [publish]
   );
 
+  const soundSiren = useCallback(
+    (secs?: number) =>
+      publish(
+        TOPICS.cmdSiren,
+        secs === undefined
+          ? {}
+          : { secs: Math.round(clamp(secs, SIREN_SECS_MIN, SIREN_SECS_MAX)) }
+      ),
+    [publish]
+  );
+
   const tare = useCallback(() => publish(TOPICS.cmdTare, {}), [publish]);
 
   const calibrate = useCallback(
@@ -357,6 +389,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       skipNextMeal,
       saveSchedule,
       saveConfig,
+      soundSiren,
       tare,
       calibrate,
       clearEvents,
@@ -378,6 +411,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       skipNextMeal,
       saveSchedule,
       saveConfig,
+      soundSiren,
       tare,
       calibrate,
       clearEvents,

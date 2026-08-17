@@ -12,7 +12,7 @@ import {
   SIREN_SECS_MAX,
   SIREN_SECS_MIN,
 } from '@/config';
-import { clamp } from '@/feeder/mode';
+import { clamp, doseUnitForMode } from '@/feeder/mode';
 import type {
   ConfigPatch,
   Dose,
@@ -77,29 +77,40 @@ export function parseMode(value: unknown): FeedMode | null {
 /**
  * Le a dose de um objeto que pode trazer `secs` (timer) ou `grams` (balanca).
  *
- * Se vierem os dois, `secs` ganha, e a tela converte para a unidade do modo
- * vigente pelo `g_per_s` (mesma regra do firmware, docs/mqtt.md v2).
+ * Desempate quando vierem os dois: vale o campo do MODO ATIVO e o outro e
+ * ignorado (docs/mqtt.md v2). Por isso o chamador passa a unidade preferida;
+ * sem saber o modo, o fallback e `secs`, que e como a v1 sai de fabrica.
  */
-export function parseDose(value: Record<string, unknown>): Dose | null {
+export function parseDose(
+  value: Record<string, unknown>,
+  preferred: Dose['unit'] = 'secs'
+): Dose | null {
   const secs = asFiniteNumber(value.secs);
-  if (secs !== null && secs > 0) {
+  const grams = asFiniteNumber(value.grams);
+  const hasSecs = secs !== null && secs > 0;
+  const hasGrams = grams !== null && grams > 0;
+  if (hasSecs && hasGrams) {
+    return preferred === 'grams'
+      ? { unit: 'grams', grams: Math.round(grams) }
+      : { unit: 'secs', secs: Math.round(secs) };
+  }
+  if (hasSecs) {
     return { unit: 'secs', secs: Math.round(secs) };
   }
-  const grams = asFiniteNumber(value.grams);
-  if (grams !== null && grams > 0) {
+  if (hasGrams) {
     return { unit: 'grams', grams: Math.round(grams) };
   }
   return null;
 }
 
 /** Valida uma refeicao: hora 0-23, minuto 0-59, dose positiva em segundos ou gramas. */
-export function parseMeal(value: unknown): Meal | null {
+export function parseMeal(value: unknown, preferred?: Dose['unit']): Meal | null {
   if (!isRecord(value)) {
     return null;
   }
   const h = asFiniteNumber(value.h);
   const m = asFiniteNumber(value.m);
-  const dose = parseDose(value);
+  const dose = parseDose(value, preferred);
   if (h === null || m === null || dose === null) {
     return null;
   }
@@ -109,13 +120,13 @@ export function parseMeal(value: unknown): Meal | null {
   return { h: Math.trunc(h), m: Math.trunc(m), dose };
 }
 
-function parseLastMeal(value: unknown): LastMeal | null {
+function parseLastMeal(value: unknown, preferred?: Dose['unit']): LastMeal | null {
   if (!isRecord(value)) {
     return null;
   }
   return {
     ts: asString(value.ts),
-    dose: parseDose(value),
+    dose: parseDose(value, preferred),
     ok: typeof value.ok === 'boolean' ? value.ok : null,
   };
 }
@@ -126,13 +137,17 @@ export function parseState(raw: string): FeederState | null {
   if (!isRecord(value)) {
     return null;
   }
+  // O proprio payload diz o modo, entao o desempate secs/grams sai daqui
+  // mesmo, sem depender do que o app achava que estava valendo.
+  const mode = parseMode(value.mode);
+  const preferred = mode === null ? undefined : doseUnitForMode(mode);
   return {
     online: asBoolean(value.online, false),
     rtc: asString(value.rtc),
-    mode: parseMode(value.mode),
+    mode,
     scaleGrams: asFiniteNumber(value.scale_g),
-    lastMeal: parseLastMeal(value.last_meal),
-    nextMeal: parseMeal(value.next_meal),
+    lastMeal: parseLastMeal(value.last_meal, preferred),
+    nextMeal: parseMeal(value.next_meal, preferred),
     skipNext: asBoolean(value.skip_next, false),
     version: asString(value.version) ?? asString(value.fw),
   };
@@ -172,15 +187,18 @@ export function parseConfig(raw: string): FeederConfig | null {
   };
 }
 
-/** Le o topico retained `schedule`, descartando refeicoes invalidas. */
-export function parseSchedule(raw: string): Meal[] | null {
+/**
+ * Le o topico retained `schedule`, descartando refeicoes invalidas.
+ * `preferred` e a unidade do modo ativo, para o desempate secs/grams.
+ */
+export function parseSchedule(raw: string, preferred?: Dose['unit']): Meal[] | null {
   const value = parseJson(raw);
   if (!isRecord(value) || !Array.isArray(value.meals)) {
     return null;
   }
   const meals: Meal[] = [];
   for (const item of value.meals) {
-    const meal = parseMeal(item);
+    const meal = parseMeal(item, preferred);
     if (meal !== null) {
       meals.push(meal);
     }
@@ -189,7 +207,7 @@ export function parseSchedule(raw: string): Meal[] | null {
 }
 
 /** Le o topico `event`. Evento desconhecido vira `unknown` com o texto cru. */
-export function parseEvent(raw: string): FeederEvent {
+export function parseEvent(raw: string, preferred?: Dose['unit']): FeederEvent {
   const value = parseJson(raw);
   if (!isRecord(value)) {
     return { kind: 'unknown', raw };
@@ -197,11 +215,13 @@ export function parseEvent(raw: string): FeederEvent {
   const type = asString(value.type);
   switch (type) {
     case 'meal_done':
-      return { kind: 'meal_done', dose: parseDose(value) };
+      return { kind: 'meal_done', dose: parseDose(value, preferred) };
     case 'meal_failed':
       return { kind: 'meal_failed', reason: asString(value.reason) };
     case 'button_feed':
       return { kind: 'button_feed' };
+    case 'siren':
+      return { kind: 'siren', secs: asFiniteNumber(value.secs) };
     case 'config_changed':
       return { kind: 'config_changed' };
     default:

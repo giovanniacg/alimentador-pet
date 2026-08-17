@@ -10,6 +10,7 @@ export const TOPICS = {
   cmdSkip: `${TOPIC_PREFIX}/cmd/skip`,
   cmdSchedule: `${TOPIC_PREFIX}/cmd/schedule`,
   cmdConfig: `${TOPIC_PREFIX}/cmd/config`,
+  cmdSiren: `${TOPIC_PREFIX}/cmd/siren`,
   cmdTare: `${TOPIC_PREFIX}/cmd/tare`,
   cmdCalibrate: `${TOPIC_PREFIX}/cmd/calibrate`,
 } as const;

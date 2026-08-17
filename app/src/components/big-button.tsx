@@ -1,6 +1,9 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { MIN_TOUCH, colors, fontSizes, radius, spacing } from '@/theme';
+
+type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 type Variant = 'primary' | 'secondary' | 'danger';
 
@@ -14,6 +17,8 @@ type BigButtonProps = {
   /** Motivo do bloqueio, lido por leitor de tela e mostrado em texto. */
   readonly disabledReason?: string;
   readonly huge?: boolean;
+  /** Icone opcional ao lado do rotulo. Decorativo: o texto e que nomeia o botao. */
+  readonly icon?: IconName;
   readonly style?: ViewStyle;
 };
 
@@ -31,6 +36,7 @@ export function BigButton({
   disabled = false,
   disabledReason,
   huge = false,
+  icon,
   style,
 }: BigButtonProps) {
   const palette = paletteFor(variant, disabled);
@@ -42,6 +48,7 @@ export function BigButton({
         accessibilityLabel={label}
         accessibilityHint={disabled ? disabledReason : hint}
         accessibilityState={{ disabled }}
+        accessible
         disabled={disabled}
         onPress={onPress}
         style={({ pressed }) => [
@@ -53,11 +60,16 @@ export function BigButton({
           },
           style,
         ]}>
-        <Text
-          style={[styles.label, huge ? styles.hugeLabel : null, { color: palette.text }]}
-          maxFontSizeMultiplier={1.4}>
-          {label}
-        </Text>
+        <View style={styles.labelRow}>
+          {icon === undefined ? null : (
+            <MaterialIcons name={icon} size={28} color={palette.text} />
+          )}
+          <Text
+            style={[styles.label, huge ? styles.hugeLabel : null, { color: palette.text }]}
+            maxFontSizeMultiplier={1.4}>
+            {label}
+          </Text>
+        </View>
         {hint === undefined || disabled ? null : (
           <Text style={[styles.hint, { color: palette.text }]}>{hint}</Text>
         )}
@@ -123,6 +135,13 @@ const styles = StyleSheet.create({
   },
   huge: {
     minHeight: 120,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
   },
   label: {
     fontSize: fontSizes.large,
