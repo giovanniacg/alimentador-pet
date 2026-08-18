@@ -24,14 +24,28 @@ export const SUBSCRIBED_TOPICS: readonly string[] = [
 ];
 
 /**
- * Monta a URL do broker. O usuario digita so o dominio ("casa.exemplo.com.br");
- * se ele colar a URL inteira, respeitamos o que veio.
+ * Deixa o campo "endereco do servidor" no formato dominio puro, aceitando o
+ * que gente de verdade cola ali: "https://casa.com", "casa.com/", espacos.
+ * Sem isso, "https://casa.com" virava wss://https://... e o Android tentava
+ * resolver um host chamado "https" (bug real de 2026-08-18, achado em campo).
+ */
+export function normalizeHost(host: string): string {
+  return host
+    .trim()
+    .replace(/^[a-z]+:\/\//i, '')  // https://, wss://, o que vier
+    .replace(/\/.*$/, '')          // caminho e barras finais
+    .replace(/:\d+$/, '')          // porta digitada (a nossa e fixa, 443)
+    .toLowerCase();
+}
+
+/**
+ * Monta a URL do broker a partir do dominio ja normalizado. Quem digitou URL
+ * websocket completa (ws:// ou wss://) tem o valor respeitado.
  */
 export function brokerUrl(host: string): string {
   const trimmed = host.trim();
   if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
     return trimmed;
   }
-  const withoutSlash = trimmed.replace(/\/+$/, '');
-  return `wss://${withoutSlash}:${BROKER_PORT}${BROKER_WS_PATH}`;
+  return `wss://${normalizeHost(trimmed)}:${BROKER_PORT}${BROKER_WS_PATH}`;
 }

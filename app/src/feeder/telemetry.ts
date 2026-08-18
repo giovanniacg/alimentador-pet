@@ -4,8 +4,10 @@
  * atrapalhar o app. Existe porque falha que so acontece no APK de producao
  * nao tem console (2026-08-18). Nunca enviar senha por aqui.
  */
+import { normalizeHost } from '@/feeder/topics';
+
 export function reportDebug(host: string, payload: Record<string, unknown>): void {
-  const trimmed = host.trim().replace(/^wss?:\/\//, '').replace(/\/.*$/, '');
+  const trimmed = normalizeHost(host);
   if (trimmed.length === 0) {
     return;
   }

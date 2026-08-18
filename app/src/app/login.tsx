@@ -14,7 +14,7 @@ import { Screen, useRevealAboveKeyboard } from '@/components/screen';
 import { DEFAULT_BROKER_HOST, DEFAULT_USERNAME } from '@/config';
 import { useFeeder } from '@/feeder/provider';
 import { reportDebug } from '@/feeder/telemetry';
-import { brokerUrl } from '@/feeder/topics';
+import { brokerUrl, normalizeHost } from '@/feeder/topics';
 import { colors, control, fontCap, fontSizes, iconSize, radius, spacing, type } from '@/theme';
 
 /** Erro por campo. O erro de conexao nao pertence a campo nenhum. */
@@ -56,7 +56,7 @@ export default function LoginScreen() {
     };
 
     try {
-      const response = await fetch(`https://${host.trim()}/mqtt`, { method: 'GET' });
+      const response = await fetch(`https://${normalizeHost(host)}/mqtt`, { method: 'GET' });
       add(`1. HTTPS: respondeu (status ${response.status}). Rede e certificado OK.`);
     } catch (thrown) {
       add(
@@ -153,7 +153,7 @@ export default function LoginScreen() {
 
     setSaveError(null);
     setSaving(true);
-    signIn({ host: host.trim(), username: username.trim(), password })
+    signIn({ host: normalizeHost(host), username: username.trim(), password })
       .catch(() => {
         setSaveError('Não foi possível guardar os dados neste celular.');
       })
