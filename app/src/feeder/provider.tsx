@@ -69,6 +69,8 @@ type FeederContextValue = {
   /** Fator de conversao entre segundos e gramas, com o default do contrato. */
   readonly gramsPerSecond: number;
   readonly events: readonly FeederEventEntry[];
+  /** Diario cru de rede da sessao (diagnostico visivel no proprio app). */
+  readonly netLog: readonly string[];
   signIn(credentials: Credentials): Promise<void>;
   signOut(): Promise<void>;
   feedNow(dose: Dose): Promise<void>;
@@ -131,6 +133,10 @@ export function FeederProvider({ children }: { children: ReactNode }) {
   const [lastError, setLastError] = useState<string | null>(null);
   const [storedSession, setStoredSession] = useState<Session>(() => emptySession(null));
   const [events, setEvents] = useState<readonly FeederEventEntry[]>([]);
+  // Diario cru dos eventos de rede da sessao atual. Existe porque uma falha
+  // que so acontece no APK de producao nao tem console: a tela e o unico
+  // lugar onde o erro pode aparecer (aprendido em 2026-08-18).
+  const [netLog, setNetLog] = useState<readonly string[]>([]);
 
   // Sessao valida agora: a guardada, se pertencer as credenciais atuais.
   const session: Session =
@@ -184,6 +190,15 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     let attempt = 0;
     let closedByUs = false;
 
+    const log = (line: string) => {
+      const at = new Date();
+      const hh = `${at.getHours()}`.padStart(2, '0');
+      const mm = `${at.getMinutes()}`.padStart(2, '0');
+      const ss = `${at.getSeconds()}`.padStart(2, '0');
+      setNetLog((current) => [`${hh}:${mm}:${ss} ${line}`, ...current].slice(0, 6));
+    };
+    log(`abrindo ${brokerUrl(owner.host)}`);
+
     /** Atualiza a sessao sem nunca ressuscitar estado de credencial antiga. */
     const patch = (change: (current: Session) => Session) => {
       setStoredSession((previous) =>
@@ -226,6 +241,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     clientRef.current = client;
 
     client.on('connect', () => {
+      log('conectado');
       attempt = 0;
       client.options.reconnectPeriod = RECONNECT_MIN_MS;
       setStatus({ kind: 'connected' });
@@ -249,6 +265,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     });
 
     client.on('error', (error: Error) => {
+      log(`erro: ${error.message}`);
       const message = friendlyError(error);
       if (isAuthError(error)) {
         // Senha recusada: nao adianta insistir. Volta pro login.
@@ -265,6 +282,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
     });
 
     client.on('close', () => {
+      log('socket fechou');
       if (!closedByUs) {
         patch((current) =>
           current.status.kind === 'error'
@@ -401,6 +419,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       mode,
       gramsPerSecond,
       events,
+      netLog,
       signIn,
       signOut,
       feedNow,
@@ -423,6 +442,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       mode,
       gramsPerSecond,
       events,
+      netLog,
       signIn,
       signOut,
       feedNow,

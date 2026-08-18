@@ -13,6 +13,7 @@ import { BigButton } from '@/components/big-button';
 import { Screen, useRevealAboveKeyboard } from '@/components/screen';
 import { DEFAULT_BROKER_HOST, DEFAULT_USERNAME } from '@/config';
 import { useFeeder } from '@/feeder/provider';
+import { brokerUrl } from '@/feeder/topics';
 import { colors, control, fontCap, fontSizes, iconSize, radius, spacing, type } from '@/theme';
 
 /** Erro por campo. O erro de conexao nao pertence a campo nenhum. */
@@ -31,6 +32,50 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  /** Abre um WebSocket cru contra o servidor e conta o que aconteceu. */
+  const runServerTest = () => {
+    const target = brokerUrl(host);
+    setTesting(true);
+    setTestResult(`Abrindo ${target} ...`);
+    let settled = false;
+    const done = (message: string) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      setTesting(false);
+      setTestResult(message);
+    };
+    try {
+      const socket = new WebSocket(target, ['mqtt']);
+      const timer = setTimeout(() => {
+        done('Sem resposta em 12 segundos. O celular não alcançou o servidor.');
+        socket.close();
+      }, 12000);
+      socket.onopen = () => {
+        clearTimeout(timer);
+        done('Servidor alcançado: o WebSocket abriu. O problema não é a rede.');
+        socket.close();
+      };
+      socket.onerror = (event: unknown) => {
+        clearTimeout(timer);
+        const detail =
+          typeof event === 'object' && event !== null && 'message' in event
+            ? String((event as { message: unknown }).message)
+            : 'sem detalhe';
+        done(`Falhou antes de abrir. Detalhe técnico: ${detail}`);
+      };
+    } catch (thrown) {
+      done(
+        `Nem chegou a abrir o WebSocket. Detalhe técnico: ${
+          thrown instanceof Error ? thrown.message : String(thrown)
+        }`
+      );
+    }
+  };
 
   const hostRef = useRef<TextInput>(null);
   const usernameRef = useRef<TextInput>(null);
@@ -159,6 +204,18 @@ export default function LoginScreen() {
         onPress={handleSubmit}
         disabledReason={saving ? 'Só um instante.' : undefined}
       />
+
+      {/* Diagnostico: WebSocket puro, sem mqtt.js no meio. Separa "a rede do
+          celular alcanca o servidor" de "a biblioteca conecta". Existe porque
+          uma falha so no APK de producao nao tem console (2026-08-18). */}
+      <BigButton
+        label={testing ? 'Testando...' : 'Testar servidor'}
+        variant="secondary"
+        loading={testing}
+        onPress={runServerTest}
+        hint="Só confere se este celular alcança o servidor. Não usa a senha."
+      />
+      {testResult === null ? null : <Text style={styles.testResult}>{testResult}</Text>}
     </Screen>
   );
 }
@@ -296,6 +353,10 @@ const styles = StyleSheet.create({
   },
   submit: {
     marginTop: spacing.lg,
+  },
+  testResult: {
+    fontSize: fontSizes.small,
+    color: colors.muted,
   },
   errorBox: {
     flexDirection: 'row',

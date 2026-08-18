@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { Card } from '@/components/card';
@@ -32,8 +32,18 @@ import { useNow } from '@/hooks/use-now';
 import { colors, control, fontCap, fontSizes, spacing, type } from '@/theme';
 
 export default function HomeScreen() {
-  const { status, state, config, mode, gramsPerSecond, signOut, feedNow, skipNextMeal, soundSiren } =
-    useFeeder();
+  const {
+    status,
+    state,
+    config,
+    mode,
+    gramsPerSecond,
+    netLog,
+    signOut,
+    feedNow,
+    skipNextMeal,
+    soundSiren,
+  } = useFeeder();
   const now = useNow();
   /** `chosen === null` significa "usar a dose rápida gravada no aparelho". */
   const [chosen, setChosen] = useState<Dose | null>(null);
@@ -143,6 +153,15 @@ export default function HomeScreen() {
   return (
     <Screen title="Alimentador">
       <FeederStatusPanel status={status} state={state} />
+      {status.kind !== 'connected' && netLog.length > 0 ? (
+        <View accessibilityLabel="Diário técnico da conexão">
+          {netLog.slice(0, 4).map((line) => (
+            <Text key={line} style={styles.netLogLine}>
+              {line}
+            </Text>
+          ))}
+        </View>
+      ) : null}
 
       <Card title="Última refeição">
         <Text style={styles.info}>{formatLastMeal(state?.lastMeal ?? null, now)}</Text>
@@ -232,6 +251,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.large,
     color: colors.text,
     fontWeight: '600',
+  },
+  netLogLine: {
+    fontSize: 13,
+    color: colors.muted,
+    fontVariant: ['tabular-nums'],
   },
   muted: {
     fontSize: fontSizes.small,
