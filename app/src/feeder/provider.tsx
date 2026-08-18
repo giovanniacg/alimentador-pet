@@ -206,7 +206,23 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       resubscribe: true,
     };
 
-    const client = mqtt.connect(brokerUrl(owner.host), options);
+    // Em bundle de producao, uma falha de ambiente (global faltando, modulo
+    // resolvido errado) pode estourar AQUI, sincrono, antes de existir handler
+    // de erro. Sem o catch, o status ficaria em "conectando" pra sempre e a
+    // causa morreria muda. O erro cru vai pra tela de proposito.
+    let client: MqttClient;
+    try {
+      client = mqtt.connect(brokerUrl(owner.host), options);
+    } catch (thrown) {
+      const detail = thrown instanceof Error ? thrown.message : String(thrown);
+      const message = `Falha ao iniciar a conexão. Detalhe técnico: ${detail}`;
+      // setState adiado pra fora do corpo do efeito (regra do React Compiler)
+      const timer = setTimeout(() => {
+        setStatus({ kind: 'error', message });
+        setLastError(message);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
     clientRef.current = client;
 
     client.on('connect', () => {
@@ -243,7 +259,9 @@ export function FeederProvider({ children }: { children: ReactNode }) {
         setCredentials(null);
         return;
       }
-      setStatus({ kind: 'error', message });
+      // O detalhe cru vai junto: sem ele, falha que so acontece no APK de
+      // producao vira adivinhacao (aprendido em 2026-08-18).
+      setStatus({ kind: 'error', message: `${message} Detalhe técnico: ${error.message}` });
     });
 
     client.on('close', () => {
