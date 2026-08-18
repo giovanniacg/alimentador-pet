@@ -31,6 +31,7 @@ import {
   parseState,
   scheduleCommandPayload,
 } from '@/feeder/parse';
+import { reportDebug } from '@/feeder/telemetry';
 import { SUBSCRIBED_TOPICS, TOPICS, brokerUrl } from '@/feeder/topics';
 import type {
   ConfigPatch,
@@ -196,6 +197,7 @@ export function FeederProvider({ children }: { children: ReactNode }) {
       const mm = `${at.getMinutes()}`.padStart(2, '0');
       const ss = `${at.getSeconds()}`.padStart(2, '0');
       setNetLog((current) => [`${hh}:${mm}:${ss} ${line}`, ...current].slice(0, 6));
+      reportDebug(owner.host, { tag: 'netlog', user: owner.username, line });
     };
     log(`abrindo ${brokerUrl(owner.host)}`);
 

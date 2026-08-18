@@ -13,6 +13,7 @@ import { BigButton } from '@/components/big-button';
 import { Screen, useRevealAboveKeyboard } from '@/components/screen';
 import { DEFAULT_BROKER_HOST, DEFAULT_USERNAME } from '@/config';
 import { useFeeder } from '@/feeder/provider';
+import { reportDebug } from '@/feeder/telemetry';
 import { brokerUrl } from '@/feeder/topics';
 import { colors, control, fontCap, fontSizes, iconSize, radius, spacing, type } from '@/theme';
 
@@ -35,46 +36,83 @@ export default function LoginScreen() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
-  /** Abre um WebSocket cru contra o servidor e conta o que aconteceu. */
-  const runServerTest = () => {
+  /**
+   * Tres sondas em sequencia, cada uma isolando uma camada:
+   *  1. HTTPS puro (fetch) no mesmo dominio: DNS + TLS + proxy, sem WebSocket.
+   *  2. WebSocket cru com subprotocolo mqtt: a camada que o app usa de verdade.
+   *  3. Tudo reportado tambem pro coletor remoto (/dbg), pra depuracao a distancia.
+   */
+  const runServerTest = async () => {
     const target = brokerUrl(host);
     setTesting(true);
-    setTestResult(`Abrindo ${target} ...`);
-    let settled = false;
-    const done = (message: string) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      setTesting(false);
-      setTestResult(message);
+    const lines: string[] = [];
+    const show = () => {
+      setTestResult(lines.join('\n'));
     };
+    const add = (line: string) => {
+      lines.push(line);
+      show();
+      reportDebug(host, { tag: 'teste-servidor', line });
+    };
+
     try {
-      const socket = new WebSocket(target, ['mqtt']);
-      const timer = setTimeout(() => {
-        done('Sem resposta em 12 segundos. O celular não alcançou o servidor.');
-        socket.close();
-      }, 12000);
-      socket.onopen = () => {
-        clearTimeout(timer);
-        done('Servidor alcançado: o WebSocket abriu. O problema não é a rede.');
-        socket.close();
-      };
-      socket.onerror = (event: unknown) => {
-        clearTimeout(timer);
-        const detail =
-          typeof event === 'object' && event !== null && 'message' in event
-            ? String((event as { message: unknown }).message)
-            : 'sem detalhe';
-        done(`Falhou antes de abrir. Detalhe técnico: ${detail}`);
-      };
+      const response = await fetch(`https://${host.trim()}/mqtt`, { method: 'GET' });
+      add(`1. HTTPS: respondeu (status ${response.status}). Rede e certificado OK.`);
     } catch (thrown) {
-      done(
-        `Nem chegou a abrir o WebSocket. Detalhe técnico: ${
+      add(
+        `1. HTTPS: falhou. Detalhe técnico: ${
           thrown instanceof Error ? thrown.message : String(thrown)
         }`
       );
     }
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const done = (line: string) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        add(line);
+        resolve();
+      };
+      try {
+        const socket = new WebSocket(target, ['mqtt']);
+        const timer = setTimeout(() => {
+          done('2. WebSocket: sem resposta em 12 segundos.');
+          socket.close();
+        }, 12000);
+        socket.onopen = () => {
+          clearTimeout(timer);
+          done('2. WebSocket: abriu. A biblioteca MQTT é a suspeita.');
+          socket.close();
+        };
+        socket.onerror = (event: unknown) => {
+          const detail =
+            typeof event === 'object' && event !== null && 'message' in event
+              ? String((event as { message: unknown }).message)
+              : 'sem mensagem';
+          add(`2. WebSocket erro: ${detail}`);
+        };
+        socket.onclose = (event: { code?: number; reason?: string }) => {
+          clearTimeout(timer);
+          done(
+            `2. WebSocket fechou. Código ${event.code ?? '?'}${
+              event.reason !== undefined && event.reason !== '' ? `, motivo: ${event.reason}` : ''
+            }`
+          );
+        };
+      } catch (thrown) {
+        done(
+          `2. WebSocket nem abriu. Detalhe técnico: ${
+            thrown instanceof Error ? thrown.message : String(thrown)
+          }`
+        );
+      }
+    });
+
+    add('3. Relatório enviado pro servidor de diagnóstico.');
+    setTesting(false);
   };
 
   const hostRef = useRef<TextInput>(null);
